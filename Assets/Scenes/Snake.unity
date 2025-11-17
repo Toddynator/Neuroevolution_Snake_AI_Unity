@@ -504,7 +504,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   FoodPrefab: {fileID: 5336636682481078540, guid: 4e02c8cf322a8ce4dbc93f3603c37321, type: 3}
-  sceneSize: {x: 64, y: 32}
+  SceneSize: {x: 32, y: 16}
+  GrowthPerApple: 3
 --- !u!4 &1143769917
 Transform:
   m_ObjectHideFlags: 0
@@ -934,6 +935,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: SnakeHead
       objectReference: {fileID: 0}
+    - target: {fileID: 873439002473941800, guid: c0c90454489fe60418c29f65071b9254, type: 3}
+      propertyPath: gameManager
+      value: 
+      objectReference: {fileID: 1143769916}
     - target: {fileID: 873439002473941800, guid: c0c90454489fe60418c29f65071b9254, type: 3}
       propertyPath: SnakeSegment
       value: 

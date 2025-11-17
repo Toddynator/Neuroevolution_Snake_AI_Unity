@@ -5,6 +5,8 @@ using System.Collections.Generic;
 
 public class SnakeBehaviour : MonoBehaviour
 {
+    public GameManager gameManager;
+
     public Transform SnakeSegment;
     private List<Transform> segments;
 
@@ -70,9 +72,12 @@ public class SnakeBehaviour : MonoBehaviour
 
     private void Grow()
     {
-        Transform segment = Instantiate(SnakeSegment);
-        segment.position = segments[segments.Count - 1].position;
-        segments.Add(segment);
+        for (int i = 0; i < gameManager.GrowthPerApple; i++)
+        {
+            Transform segment = Instantiate(SnakeSegment);
+            segment.position = segments[segments.Count - 1].position;
+            segments.Add(segment);
+        }
     }
 
     private void GameOver()
