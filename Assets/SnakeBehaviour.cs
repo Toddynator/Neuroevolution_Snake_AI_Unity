@@ -1,32 +1,40 @@
+using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 public class SnakeBehaviour : MonoBehaviour
 {
+    public Transform SnakeSegment;
+    private List<Transform> segments;
+
     private Vector2 direction = Vector2.right;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+        segments = new List<Transform>();
+        segments.Add(this.transform);
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.W))
+        // Ignore directly opposite movement inputs so that snake doesn't go back into itself.
+
+        if (Input.GetKeyDown(KeyCode.W) && direction != Vector2.down)
         {
             direction = Vector2.up;
         }
-        else if (Input.GetKeyDown(KeyCode.S))
+        else if (Input.GetKeyDown(KeyCode.S) && direction != Vector2.up)
         {
             direction = Vector2.down;
         }
-        else if (Input.GetKey(KeyCode.A))
+        else if (Input.GetKey(KeyCode.A) && direction != Vector2.right)
         {
             direction = Vector2.left;
         }
-        else if (Input.GetKeyDown(KeyCode.D))
+        else if (Input.GetKeyDown(KeyCode.D) && direction != Vector2.left)
         {
             direction = Vector2.right;
         }
@@ -34,6 +42,12 @@ public class SnakeBehaviour : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // Update snake segments
+        for (int i = segments.Count - 1; i > 0; i--)
+        {
+            segments[i].position = segments[i - 1].position;
+        }
+
         this.transform.position = new Vector3(Mathf.Round(this.transform.position.x) + direction.x, Mathf.Round(this.transform.position.y) + direction.y, 0.0f);
     }
 
@@ -56,7 +70,9 @@ public class SnakeBehaviour : MonoBehaviour
 
     private void Grow()
     {
-
+        Transform segment = Instantiate(SnakeSegment);
+        segment.position = segments[segments.Count - 1].position;
+        segments.Add(segment);
     }
 
     private void GameOver()

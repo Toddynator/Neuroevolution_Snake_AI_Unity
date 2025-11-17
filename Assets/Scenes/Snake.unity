@@ -934,6 +934,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: SnakeHead
       objectReference: {fileID: 0}
+    - target: {fileID: 873439002473941800, guid: c0c90454489fe60418c29f65071b9254, type: 3}
+      propertyPath: SnakeSegment
+      value: 
+      objectReference: {fileID: 4751037099238941569, guid: c7844ec31b90d1c4a908161906936309, type: 3}
+    - target: {fileID: 873439002473941800, guid: c0c90454489fe60418c29f65071b9254, type: 3}
+      propertyPath: snakeSegment
+      value: 
+      objectReference: {fileID: 5878498378711950053, guid: c7844ec31b90d1c4a908161906936309, type: 3}
     - target: {fileID: 1141542664624037918, guid: c0c90454489fe60418c29f65071b9254, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
