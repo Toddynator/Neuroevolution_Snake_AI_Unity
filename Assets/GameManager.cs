@@ -42,15 +42,15 @@ public class GameManager : MonoBehaviour
         /// SETUP THE WALLS 
 
         walls = GameObject.FindGameObjectsWithTag("Wall");
-        walls[0].transform.position = new Vector3(Mathf.Round(-sceneSize.x * 0.5f), 0.0f, 0.0f);
-        walls[1].transform.position = new Vector3(Mathf.Round(sceneSize.x * 0.5f), 0.0f, 0.0f);
-        walls[2].transform.position = new Vector3(0.0f, Mathf.Round(sceneSize.y * 0.5f), 0.0f);
-        walls[3].transform.position = new Vector3(0.0f, Mathf.Round(-sceneSize.y * 0.5f), 0.0f);
+        walls[0].transform.position = new Vector3(Mathf.Round(-sceneSize.x * 0.5f) - 1.0f, 0.0f, 0.0f);
+        walls[1].transform.position = new Vector3(Mathf.Round(sceneSize.x * 0.5f) + 1.0f, 0.0f, 0.0f);
+        walls[2].transform.position = new Vector3(0.0f, Mathf.Round(sceneSize.y * 0.5f) + 1.0f, 0.0f);
+        walls[3].transform.position = new Vector3(0.0f, Mathf.Round(-sceneSize.y * 0.5f) - 1.0f, 0.0f);
 
         walls[0].transform.localScale = new Vector3(1.0f, sceneSize.y + 1.0f, 0.0f);
         walls[1].transform.localScale = new Vector3(1.0f, sceneSize.y + 1.0f, 0.0f);
-        walls[2].transform.localScale = new Vector3(sceneSize.x + 1.0f, 1.0f, 0.0f);
-        walls[3].transform.localScale = new Vector3(sceneSize.x + 1.0f, 1.0f, 0.0f);
+        walls[2].transform.localScale = new Vector3(sceneSize.x + 3.0f, 1.0f, 0.0f);
+        walls[3].transform.localScale = new Vector3(sceneSize.x + 3.0f, 1.0f, 0.0f);
     }
 
     // Update is called once per frame
