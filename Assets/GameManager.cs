@@ -7,6 +7,8 @@ using Mono.Cecil;
 using UnityEngine;
 public class GameManager : MonoBehaviour
 {
+    public GameObject FoodPrefab;
+
     private Vector2 baseSceneSize = new Vector2(32, 16);
     private float baseCameraSize = 10.0f;
     public Vector2 sceneSize = new Vector2(32, 16);
@@ -54,6 +56,13 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        // Check if apple should be respawned
+        if (GameObject.FindGameObjectsWithTag("Food").Length == 0)
+        {
+            Vector3 randomizedPosition = Vector3.zero;
+            randomizedPosition.x = Mathf.Round(Random.Range(Mathf.Round(-sceneSize.x * 0.5f), Mathf.Round(sceneSize.x * 0.5f)));
+            randomizedPosition.y = Mathf.Round(Random.Range(Mathf.Round(-sceneSize.y * 0.5f), Mathf.Round(sceneSize.y * 0.5f)));
+            Instantiate(FoodPrefab, randomizedPosition, Quaternion.identity);
+        }
     }
 }
