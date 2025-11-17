@@ -506,6 +506,9 @@ MonoBehaviour:
   FoodPrefab: {fileID: 5336636682481078540, guid: 4e02c8cf322a8ce4dbc93f3603c37321, type: 3}
   SceneSize: {x: 32, y: 16}
   GrowthPerApple: 3
+  SnakeColourGradient: 1
+  headColor: {r: 0, g: 1, b: 0, a: 1}
+  tailColor: {r: 0, g: 0.5, b: 0, a: 1}
 --- !u!4 &1143769917
 Transform:
   m_ObjectHideFlags: 0

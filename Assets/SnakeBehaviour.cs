@@ -1,7 +1,8 @@
 using NUnit.Framework;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Collections.Generic;
 
 public class SnakeBehaviour : MonoBehaviour
 {
@@ -77,6 +78,19 @@ public class SnakeBehaviour : MonoBehaviour
             Transform segment = Instantiate(SnakeSegment);
             segment.position = segments[segments.Count - 1].position;
             segments.Add(segment);
+        }
+
+        /// UPDATE COLOUR GRADIENT (If enabled)
+
+        if (gameManager.SnakeColourGradient)
+        {
+            for (int i = 0; i < segments.Count; i++)
+            {
+                // Gradient fromm head to tail
+                Color color = Color.Lerp(gameManager.headColor, gameManager.tailColor, (float)i / (segments.Count - 1));
+                SpriteRenderer sprite = segments[i].GetComponent<SpriteRenderer>();
+                if (sprite != null) { sprite.color = color; }
+            }
         }
     }
 

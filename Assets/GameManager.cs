@@ -14,6 +14,9 @@ public class GameManager : MonoBehaviour
     public Vector2 SceneSize = new Vector2(32, 16);
 
     public int GrowthPerApple = 1;
+    public bool SnakeColourGradient = false; // Off by default for performance (If you need a TON of snake games running at the same time).
+    public Color headColor = Color.green;
+    public Color tailColor = new Color(0, 0.5f, 0, 1);
 
     GameObject[] walls;
 
