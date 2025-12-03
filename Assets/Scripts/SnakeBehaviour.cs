@@ -12,6 +12,11 @@ public class SnakeBehaviour : MonoBehaviour
     private List<Transform> segments;
 
     private Vector2 direction = Vector2.right;
+    private Vector2 prevDirection = Vector2.right; // For stopping the snake from moving back into itself
+
+    /// GENETIC ALGORITHMS
+
+    int turnDirection = 0; // -1 to 1, 0 to move forward
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -25,22 +30,76 @@ public class SnakeBehaviour : MonoBehaviour
     {
         // Ignore directly opposite movement inputs so that snake doesn't go back into itself.
 
-        if (Input.GetKeyDown(KeyCode.W) && direction != Vector2.down)
+        if (Input.GetKeyDown(KeyCode.W) && prevDirection != Vector2.down)
         {
             direction = Vector2.up;
         }
-        else if (Input.GetKeyDown(KeyCode.S) && direction != Vector2.up)
+        else if (Input.GetKeyDown(KeyCode.S) && prevDirection != Vector2.up)
         {
             direction = Vector2.down;
         }
-        else if (Input.GetKey(KeyCode.A) && direction != Vector2.right)
+        else if (Input.GetKey(KeyCode.A) && prevDirection != Vector2.right)
         {
             direction = Vector2.left;
         }
-        else if (Input.GetKeyDown(KeyCode.D) && direction != Vector2.left)
+        else if (Input.GetKeyDown(KeyCode.D) && prevDirection != Vector2.left)
         {
             direction = Vector2.right;
         }
+
+        ///// DEBUG
+        //if (Input.GetKeyDown(KeyCode.W))
+        //{
+        //    turnDirection = 0;
+        //}
+        //else if (Input.GetKey(KeyCode.A))
+        //{
+        //    turnDirection = -1;
+        //}
+        //else if (Input.GetKeyDown(KeyCode.D))
+        //{
+        //    turnDirection = 1;
+        //}
+        ///// DEBUG
+
+        //if (turnDirection == -1) // Turn Left
+        //{
+        //    if (direction == Vector2.up)
+        //    {
+        //        direction = Vector2.left;
+        //    }
+        //    else if (direction == Vector2.left)
+        //    {
+        //        direction = Vector2.down;
+        //    }
+        //    else if (direction == Vector2.down)
+        //    {
+        //        direction = Vector2.right;
+        //    }
+        //    else
+        //    {
+        //        direction = Vector2.up;
+        //    }
+        //}
+        //else if (turnDirection == 1) // Turn Right
+        //{
+        //    if (direction == Vector2.up)
+        //    {
+        //        direction = Vector2.right;
+        //    }
+        //    else if (direction == Vector2.right)
+        //    {
+        //        direction = Vector2.down;
+        //    }
+        //    else if (direction == Vector2.down)
+        //    {
+        //        direction = Vector2.left;
+        //    }
+        //    else
+        //    {
+        //        direction = Vector2.up;
+        //    }
+        //}
     }
 
     private void FixedUpdate()
@@ -52,6 +111,7 @@ public class SnakeBehaviour : MonoBehaviour
         }
 
         this.transform.position = new Vector3(Mathf.Round(this.transform.position.x) + direction.x, Mathf.Round(this.transform.position.y) + direction.y, 0.0f);
+        prevDirection = direction;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
