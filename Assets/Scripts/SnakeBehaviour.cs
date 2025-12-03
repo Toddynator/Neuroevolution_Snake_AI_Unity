@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -13,10 +14,18 @@ public class SnakeBehaviour : MonoBehaviour
 
     private Vector2 direction = Vector2.right;
     private Vector2 prevDirection = Vector2.right; // For stopping the snake from moving back into itself
+    private int turnDirection = 0; // -1 to 1, 0 to move forward
+
+    public TextMeshProUGUI distanceToObstacleText;
+    public TextMeshProUGUI distanceToAppleText;
+    public TextMeshProUGUI seeAppleText;
 
     /// GENETIC ALGORITHMS
 
-    int turnDirection = 0; // -1 to 1, 0 to move forward
+    public DNA dna;
+    int distanceToObstacleInFront;
+    float distanceToApple; // Since I want to consider distance even if it isn't in line of sight, this is a float (To account for diagonals)
+    bool seeApple;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -103,15 +112,46 @@ public class SnakeBehaviour : MonoBehaviour
     }
 
     private void FixedUpdate()
-    {
-        // Update snake segments
+    {    
+        /// MOVE SNAKE
+
         for (int i = segments.Count - 1; i > 0; i--)
         {
             segments[i].position = segments[i - 1].position;
         }
-
         this.transform.position = new Vector3(Mathf.Round(this.transform.position.x) + direction.x, Mathf.Round(this.transform.position.y) + direction.y, 0.0f);
         prevDirection = direction;
+
+        /// SNAKE SENSES ~ What it sees
+
+        float rayLength = Mathf.Max(gameManager.SceneSize.x, gameManager.SceneSize.y);
+        Vector2 position = this.transform.position;
+        Debug.DrawRay(position, direction * rayLength, Color.blue); // Draws a line in Scene View (You can see it in the game if gizmo's are enabled).
+        RaycastHit2D hit;
+        hit = Physics2D.Linecast(position, position + (direction * rayLength), LayerMask.GetMask("Wall", "Snake")); // Pretty much guaranteed to hit something
+        if (hit.collider != null)
+        {
+            distanceToObstacleInFront = (int)hit.distance;
+        }
+        hit = Physics2D.Linecast(position, position + (direction * rayLength), LayerMask.GetMask("Food"));
+        if (hit.collider != null)
+        {
+            //distanceToApple = (int)hit.distance;
+            seeApple = true;
+        }
+        else { seeApple = false; }
+        if (gameManager.GetApple() != null)
+        {
+            Vector2 difference = gameManager.GetApple().transform.position - transform.position;
+            distanceToApple = difference.magnitude;
+        }
+
+        /// UPDATE UI
+        // Later this should probably be moved to game controller, and game controller should be in charge of selecting the snake and updating the UI.
+
+        distanceToObstacleText.text = "Distance to Obstacle: " + distanceToObstacleInFront;
+        distanceToAppleText.text = "Distance to Apple: " + distanceToApple;
+        seeAppleText.text = "Sees Apple: " + seeApple;
     }
 
     private void OnTriggerEnter2D(Collider2D other)

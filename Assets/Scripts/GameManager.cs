@@ -25,6 +25,8 @@ public class GameManager : MonoBehaviour
     //private int generation = 0;
 
     GameObject[] walls;
+    private GameObject apple;
+    public GameObject GetApple() { return apple; } // Purely so it doesn't show on the inspector and make things confusing. I still want to be able to read it in my snake class though.
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -76,7 +78,7 @@ public class GameManager : MonoBehaviour
             Vector3 randomizedPosition = Vector3.zero;
             randomizedPosition.x = Mathf.Round(Random.Range(Mathf.Round(-SceneSize.x * 0.5f), Mathf.Round(SceneSize.x * 0.5f)));
             randomizedPosition.y = Mathf.Round(Random.Range(Mathf.Round(-SceneSize.y * 0.5f), Mathf.Round(SceneSize.y * 0.5f)));
-            Instantiate(FoodPrefab, randomizedPosition, Quaternion.identity);
+            apple = Instantiate(FoodPrefab, randomizedPosition, Quaternion.identity);
         }
     }
 }
