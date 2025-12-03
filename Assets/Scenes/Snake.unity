@@ -505,6 +505,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   FoodPrefab: {fileID: 5336636682481078540, guid: 4e02c8cf322a8ce4dbc93f3603c37321, type: 3}
   SceneSize: {x: 64, y: 32}
+  fixedTimeStep: 0.1
   GrowthPerApple: 5
   SnakeColourGradient: 1
   headColor: {r: 0, g: 1, b: 0, a: 1}
