@@ -4,10 +4,13 @@ Should control the size of the scene.
  */
 
 using Mono.Cecil;
+using TMPro;
 using UnityEngine;
 public class GameManager : MonoBehaviour
 {
     public GameObject FoodPrefab;
+    public GameObject SnakePrefab;
+    public Transform SnakeSegmentPrefab;
 
     /// SNAKE SETTINGS
 
@@ -22,9 +25,22 @@ public class GameManager : MonoBehaviour
 
     /// GENETIC ALGORITHMS
 
-    //private int generation = 0;
+    public int populationSize = 10;
+    private int generation = 0;
+    private int currentSnake = 0; // Run the games sequentially, this is how newly created snakes will get their corresponding DNA on initialization.
 
-    GameObject[] walls;
+    public TextMeshProUGUI distanceToObstacleText;
+    public TextMeshProUGUI distanceToAppleText;
+    public TextMeshProUGUI seeAppleText;
+    public TextMeshProUGUI snakeNumText;
+    public TextMeshProUGUI popSizeText;
+    public TextMeshProUGUI genNumText;
+
+    /// GAMEOBJECTS
+
+    private DNA[] snakes;
+    private SnakeBehaviour snake;
+    private GameObject[] walls;
     private GameObject apple;
     public GameObject GetApple() { return apple; } // Purely so it doesn't show on the inspector and make things confusing. I still want to be able to read it in my snake class though.
 
@@ -67,6 +83,11 @@ public class GameManager : MonoBehaviour
         walls[1].transform.localScale = new Vector3(1.0f, SceneSize.y + 1.0f, 0.0f);
         walls[2].transform.localScale = new Vector3(SceneSize.x + 3.0f, 1.0f, 0.0f);
         walls[3].transform.localScale = new Vector3(SceneSize.x + 3.0f, 1.0f, 0.0f);
+
+        /// PREPARE THE SNAKES
+
+        snakes = new DNA[populationSize];
+        CreateSnake();
     }
 
     // Update is called once per frame
@@ -80,5 +101,40 @@ public class GameManager : MonoBehaviour
             randomizedPosition.y = Mathf.Round(Random.Range(Mathf.Round(-SceneSize.y * 0.5f), Mathf.Round(SceneSize.y * 0.5f)));
             apple = Instantiate(FoodPrefab, randomizedPosition, Quaternion.identity);
         }
+
+        /// UPDATE UI
+        // Later this should probably be moved to game controller, and game controller should be in charge of selecting the snake and updating the UI.
+
+        distanceToObstacleText.text = "Distance to Obstacle: " + snake.distanceToObstacleInFront;
+        distanceToAppleText.text = "Distance to Apple: " + snake.distanceToApple;
+        seeAppleText.text = "Sees Apple: " + snake.seeApple;
+        snakeNumText.text = "Snake Number: " + currentSnake;
+        popSizeText.text = "Population Size: " + populationSize;
+        genNumText.text = "Generation: " + generation;
+    }
+
+    public void FixedUpdate()
+    {
+        if (snake.alive == false)
+        {
+            Destroy(snake); // Remove the previous Snake
+            currentSnake++;          
+            if (currentSnake >= snakes.Length)
+            {
+                // Next Generation
+                generation++;
+
+                /// TODO ~ Crossover, mutation, etc
+
+                currentSnake = 0;
+            }
+            CreateSnake();
+        }
+    }
+
+    public void CreateSnake()
+    {
+        snake = Instantiate(SnakePrefab).GetComponent<SnakeBehaviour>();
+        snake.Initialize(snakes[currentSnake], SnakeSegmentPrefab, this);
     }
 }

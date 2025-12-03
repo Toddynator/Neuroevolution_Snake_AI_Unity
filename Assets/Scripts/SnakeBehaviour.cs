@@ -7,25 +7,27 @@ using UnityEngine.SceneManagement;
 
 public class SnakeBehaviour : MonoBehaviour
 {
-    public GameManager gameManager;
-
-    public Transform SnakeSegment;
+    private GameManager GameManager;
+    private Transform SnakeSegment;
     private List<Transform> segments;
 
     private Vector2 direction = Vector2.right;
     private Vector2 prevDirection = Vector2.right; // For stopping the snake from moving back into itself
     private int turnDirection = 0; // -1 to 1, 0 to move forward
 
-    public TextMeshProUGUI distanceToObstacleText;
-    public TextMeshProUGUI distanceToAppleText;
-    public TextMeshProUGUI seeAppleText;
-
-    /// GENETIC ALGORITHMS
+    public int distanceToObstacleInFront;
+    public float distanceToApple; // Since I want to consider distance even if it isn't in line of sight, this is a float (To account for diagonals)
+    public bool seeApple;
+    public bool alive = true;
 
     public DNA dna;
-    int distanceToObstacleInFront;
-    float distanceToApple; // Since I want to consider distance even if it isn't in line of sight, this is a float (To account for diagonals)
-    bool seeApple;
+
+    public void Initialize(DNA newDNA, Transform snakeSegment, GameManager gameManager)
+    {
+        dna = newDNA;
+        SnakeSegment = snakeSegment;
+        GameManager = gameManager;
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -124,7 +126,7 @@ public class SnakeBehaviour : MonoBehaviour
 
         /// SNAKE SENSES ~ What it sees
 
-        float rayLength = Mathf.Max(gameManager.SceneSize.x, gameManager.SceneSize.y);
+        float rayLength = Mathf.Max(GameManager.SceneSize.x, GameManager.SceneSize.y);
         Vector2 position = this.transform.position;
         Debug.DrawRay(position, direction * rayLength, Color.blue); // Draws a line in Scene View (You can see it in the game if gizmo's are enabled).
         RaycastHit2D hit;
@@ -140,18 +142,11 @@ public class SnakeBehaviour : MonoBehaviour
             seeApple = true;
         }
         else { seeApple = false; }
-        if (gameManager.GetApple() != null)
+        if (GameManager.GetApple() != null)
         {
-            Vector2 difference = gameManager.GetApple().transform.position - transform.position;
+            Vector2 difference = GameManager.GetApple().transform.position - transform.position;
             distanceToApple = difference.magnitude;
         }
-
-        /// UPDATE UI
-        // Later this should probably be moved to game controller, and game controller should be in charge of selecting the snake and updating the UI.
-
-        distanceToObstacleText.text = "Distance to Obstacle: " + distanceToObstacleInFront;
-        distanceToAppleText.text = "Distance to Apple: " + distanceToApple;
-        seeAppleText.text = "Sees Apple: " + seeApple;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -173,7 +168,7 @@ public class SnakeBehaviour : MonoBehaviour
 
     private void Grow()
     {
-        for (int i = 0; i < gameManager.GrowthPerApple; i++)
+        for (int i = 0; i < GameManager.GrowthPerApple; i++)
         {
             Transform segment = Instantiate(SnakeSegment);
             segment.position = segments[segments.Count - 1].position;
@@ -182,12 +177,12 @@ public class SnakeBehaviour : MonoBehaviour
 
         /// UPDATE COLOUR GRADIENT (If enabled)
 
-        if (gameManager.SnakeColourGradient)
+        if (GameManager.SnakeColourGradient)
         {
             for (int i = 0; i < segments.Count; i++)
             {
-                // Gradient fromm head to tail
-                Color color = Color.Lerp(gameManager.headColor, gameManager.tailColor, (float)i / (segments.Count - 1));
+                // Gradient from head to tail
+                Color color = Color.Lerp(GameManager.headColor, GameManager.tailColor, (float)i / (segments.Count - 1));
                 SpriteRenderer sprite = segments[i].GetComponent<SpriteRenderer>();
                 if (sprite != null) { sprite.color = color; }
             }
@@ -196,7 +191,12 @@ public class SnakeBehaviour : MonoBehaviour
 
     private void GameOver()
     {
-        Debug.Log("Snake Died");
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name); // Restart
+        //Debug.Log("Snake Died");
+        //SceneManager.LoadScene(SceneManager.GetActiveScene().name); // Restart
+        alive = false;
+        for (int i = 0; i < segments.Count; i++)
+        {
+            Destroy(segments[i].gameObject);
+        }
     }
 }

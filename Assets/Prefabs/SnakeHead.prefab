@@ -104,6 +104,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gameManager: {fileID: 0}
   SnakeSegment: {fileID: 0}
+  distanceToObstacleText: {fileID: 0}
+  distanceToAppleText: {fileID: 0}
+  seeAppleText: {fileID: 0}
 --- !u!61 &4476223740436720793
 BoxCollider2D:
   m_ObjectHideFlags: 0
