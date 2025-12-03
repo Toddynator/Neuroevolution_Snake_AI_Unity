@@ -12,6 +12,7 @@ public class GameManager : MonoBehaviour
     private Vector2 baseSceneSize = new Vector2(32, 16);
     private float baseCameraSize = 10.0f;
     public Vector2 SceneSize = new Vector2(32, 16);
+    public float fixedTimeStep = 0.1f;
 
     public int GrowthPerApple = 1;
     public bool SnakeColourGradient = false; // Off by default for performance (If you need a TON of snake games running at the same time).
@@ -23,6 +24,8 @@ public class GameManager : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        Time.fixedDeltaTime = fixedTimeStep;
+
         // Ensure scene size is even so that camera is always centred.
         if (SceneSize.x % 2 != 0) { SceneSize.x += 1; }
         if (SceneSize.y % 2 != 0) { SceneSize.y += 1; }
