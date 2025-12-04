@@ -4,6 +4,7 @@ Should control the size of the scene.
  */
 
 using Mono.Cecil;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 public class GameManager : MonoBehaviour
@@ -29,9 +30,10 @@ public class GameManager : MonoBehaviour
     public float mutationRate = 0.01f;
     public int generationLimit = 15; // When to stop simulating and display the best candidate.
     public int numGenes = 10;
+    public float MutationRate = 0.01f;
+    public float SelectionPercentage = 0.5f; // Percentage of population sorted by fitness to use for the next generation.
     private int generation = 0;
     private int currentSnake = 0; // Run the games sequentially, this is how newly created snakes will get their corresponding DNA on initialization.
-    private float greatestFitness = 0.0f;
     private DNA bestPerformer = null;
 
     public TextMeshProUGUI distanceToObstacleText;
@@ -45,7 +47,7 @@ public class GameManager : MonoBehaviour
 
     /// GAMEOBJECTS
 
-    private DNA[] snakeChromosomes;
+    private DNA[] population;
     private SnakeBehaviour snake;
     private GameObject[] walls;
     private GameObject apple;
@@ -94,11 +96,13 @@ public class GameManager : MonoBehaviour
 
         /// PREPARE THE SNAKES
 
-        snakeChromosomes = new DNA[populationSize];
+        populationSize = Mathf.Max(populationSize, 1); // EDGE CASE: Ensure population size is never 0.
+        population = new DNA[populationSize];
         for (int i = 0; i < populationSize; i++)
         {
-            snakeChromosomes[i] = new DNA(numGenes);
+            population[i] = new DNA(numGenes);
         }
+        bestPerformer = population[0];
         CreateSnake();
     }
 
@@ -131,24 +135,29 @@ public class GameManager : MonoBehaviour
         if (snake.alive == false)
         {
             // Determine if snake is the best candidate.
-            snakeChromosomes[currentSnake].fitness = snake.CalculateFitness();
-            if (snakeChromosomes[currentSnake].fitness > greatestFitness)
+            population[currentSnake].fitness = snake.CalculateFitness();
+            if (population[currentSnake].fitness > bestPerformer.fitness)
             {
                 // Store the dna (Once program is terminated, can then use the best DNA for the AI).
                 // Could optionally serialize it as well.
                 bestPerformer = snake.dna;
-                greatestFitness = snakeChromosomes[currentSnake].fitness;
             }
 
             // Remove the previous Snake
             Destroy(snake); 
             currentSnake++;          
-            if (currentSnake >= snakeChromosomes.Length)
+            if (currentSnake >= population.Length)
             {
                 // Next Generation
                 generation++;
 
-                /// TODO ~ Crossover, mutation, etc
+                //// TERMINATION TODO, going to let it run forever for now.
+                //if (generation > generationLimit)
+                //{
+
+                //}
+
+                createNewGeneration();
 
                 currentSnake = 0;
             }
@@ -156,16 +165,56 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void createNewGeneration()
+    {
+        /// TODO ~ Crossover, mutation, etc
+
+        DNA[] newPopulation = new DNA[populationSize];
+
+        for (int i = 0; i < populationSize; i++)
+        {
+            // Selection
+            DNA parent1 = chooseParent();
+            DNA parent2 = chooseParent();
+
+            // Crossover
+            DNA child = parent1.Crossover(parent2);
+
+            // Mutation
+            child.Mutate(MutationRate);
+
+            newPopulation[i] = child;
+        }
+        population = newPopulation;
+
+        // Sort in descending order of fitness
+        System.Array.Sort(population, (a, b) => b.fitness.CompareTo((a.fitness)));
+    }
+
     public void CreateSnake()
     {
         snake = Instantiate(SnakePrefab).GetComponent<SnakeBehaviour>();
-        snake.Initialize(snakeChromosomes[currentSnake], SnakeSegmentPrefab, this);
+        snake.Initialize(population[currentSnake], SnakeSegmentPrefab, this);
     }
 
     public void SetTimeStep(string stepString) // Used by inputField UI to adjust timestep during runtime
     {
-        float step = float.Parse(stepString);
-        Time.fixedDeltaTime = step;
-        fixedTimeStep = step;
+        float step;
+        // Ensure string is valid, if so, set the new timestep.
+        if (float.TryParse(stepString, out step))
+        {
+            Time.fixedDeltaTime = step;
+            fixedTimeStep = step;
+        }
+    }
+
+    private DNA chooseParent()
+    {
+        // Population should be sorted in descending order of fitness before calling this function.
+
+        // Chooses a random parent from the fittest candidates of the population.
+        int fittestPopulationLength = (int)(populationSize * SelectionPercentage);
+        int parentIndex = UnityEngine.Random.Range(0, fittestPopulationLength);
+        return population[parentIndex];
     }
 }
