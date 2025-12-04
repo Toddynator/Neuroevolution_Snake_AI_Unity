@@ -47,22 +47,22 @@ public class SnakeBehaviour : MonoBehaviour
     {
         // Ignore directly opposite movement inputs so that snake doesn't go back into itself.
 
-        if (Input.GetKeyDown(KeyCode.W) && prevDirection != Vector2.down)
-        {
-            direction = Vector2.up;
-        }
-        else if (Input.GetKeyDown(KeyCode.S) && prevDirection != Vector2.up)
-        {
-            direction = Vector2.down;
-        }
-        else if (Input.GetKey(KeyCode.A) && prevDirection != Vector2.right)
-        {
-            direction = Vector2.left;
-        }
-        else if (Input.GetKeyDown(KeyCode.D) && prevDirection != Vector2.left)
-        {
-            direction = Vector2.right;
-        }
+        //if (Input.GetKeyDown(KeyCode.W) && prevDirection != Vector2.down)
+        //{
+        //    direction = Vector2.up;
+        //}
+        //else if (Input.GetKeyDown(KeyCode.S) && prevDirection != Vector2.up)
+        //{
+        //    direction = Vector2.down;
+        //}
+        //else if (Input.GetKey(KeyCode.A) && prevDirection != Vector2.right)
+        //{
+        //    direction = Vector2.left;
+        //}
+        //else if (Input.GetKeyDown(KeyCode.D) && prevDirection != Vector2.left)
+        //{
+        //    direction = Vector2.right;
+        //}
 
         ///// DEBUG
         //if (Input.GetKeyDown(KeyCode.W))
@@ -77,52 +77,55 @@ public class SnakeBehaviour : MonoBehaviour
         //{
         //    turnDirection = 1;
         //}
-        ///// DEBUG
-
-        //if (turnDirection == -1) // Turn Left
-        //{
-        //    if (direction == Vector2.up)
-        //    {
-        //        direction = Vector2.left;
-        //    }
-        //    else if (direction == Vector2.left)
-        //    {
-        //        direction = Vector2.down;
-        //    }
-        //    else if (direction == Vector2.down)
-        //    {
-        //        direction = Vector2.right;
-        //    }
-        //    else
-        //    {
-        //        direction = Vector2.up;
-        //    }
-        //}
-        //else if (turnDirection == 1) // Turn Right
-        //{
-        //    if (direction == Vector2.up)
-        //    {
-        //        direction = Vector2.right;
-        //    }
-        //    else if (direction == Vector2.right)
-        //    {
-        //        direction = Vector2.down;
-        //    }
-        //    else if (direction == Vector2.down)
-        //    {
-        //        direction = Vector2.left;
-        //    }
-        //    else
-        //    {
-        //        direction = Vector2.up;
-        //    }
-        //}
+        ///// DEBUG    
     }
 
     private void FixedUpdate()
-    {    
+    {
         /// MOVE SNAKE
 
+        // Turn snake ~ Currently use Genes as a list of inputs.
+        turnDirection = dna.genes[numOfMoves % dna.genes.Length];
+        if (turnDirection == -1) // Turn Left
+        {
+            if (direction == Vector2.up)
+            {
+                direction = Vector2.left;
+            }
+            else if (direction == Vector2.left)
+            {
+                direction = Vector2.down;
+            }
+            else if (direction == Vector2.down)
+            {
+                direction = Vector2.right;
+            }
+            else
+            {
+                direction = Vector2.up;
+            }
+        }
+        else if (turnDirection == 1) // Turn Right
+        {
+            if (direction == Vector2.up)
+            {
+                direction = Vector2.right;
+            }
+            else if (direction == Vector2.right)
+            {
+                direction = Vector2.down;
+            }
+            else if (direction == Vector2.down)
+            {
+                direction = Vector2.left;
+            }
+            else
+            {
+                direction = Vector2.up;
+            }
+        }
+
+        // Update segments
         for (int i = segments.Count - 1; i > 0; i--)
         {
             segments[i].position = segments[i - 1].position;
@@ -154,6 +157,19 @@ public class SnakeBehaviour : MonoBehaviour
         {
             Vector2 difference = GameManager.GetApple().transform.position - transform.position;
             distanceToApple = difference.magnitude;
+        }
+
+        /// TERMINATE EARLY ~ e.g. snake takes too long
+
+        if (numMovesSinceLastApple >= GameManager.SceneSize.x * GameManager.SceneSize.y)
+        {
+            GameOver();
+        }
+
+        // NOTE: This should be removed if I change dna to instead be used as weightings and therefore have a 'reactive' AI.
+        if (numMovesSinceLastApple > dna.genes.Length)
+        {
+            GameOver();
         }
     }
 
@@ -203,7 +219,7 @@ public class SnakeBehaviour : MonoBehaviour
 
     private void GameOver()
     {
-        //Debug.Log("Snake Died");
+        //Debug.Log("Snake GameOver()");
         //SceneManager.LoadScene(SceneManager.GetActiveScene().name); // Restart
 
         alive = false;
@@ -211,6 +227,7 @@ public class SnakeBehaviour : MonoBehaviour
         {
             Destroy(segments[i].gameObject);
         }
+        segments.Clear();
 
         if (numberOfApplesConsumed > 0) { averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed; }
     }

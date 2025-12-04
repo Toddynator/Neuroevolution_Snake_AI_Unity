@@ -1144,13 +1144,18 @@ MonoBehaviour:
   FoodPrefab: {fileID: 5336636682481078540, guid: 4e02c8cf322a8ce4dbc93f3603c37321, type: 3}
   SnakePrefab: {fileID: 371957140999644536, guid: c0c90454489fe60418c29f65071b9254, type: 3}
   SnakeSegmentPrefab: {fileID: 4751037099238941569, guid: c7844ec31b90d1c4a908161906936309, type: 3}
-  SceneSize: {x: 64, y: 32}
-  fixedTimeStep: 1e-14
+  SceneSize: {x: 16, y: 8}
+  fixedTimeStep: 0.0000001
   GrowthPerApple: 5
   SnakeColourGradient: 1
   headColor: {r: 0, g: 1, b: 0, a: 1}
   tailColor: {r: 0, g: 0.5, b: 0, a: 1}
   populationSize: 100
+  mutationRate: 0.01
+  generationLimit: 100
+  numGenes: 1024
+  MutationRate: 0.01
+  SelectionPercentage: 0.3
   distanceToObstacleText: {fileID: 2121670066}
   distanceToAppleText: {fileID: 2130487619}
   seeAppleText: {fileID: 1166371089}

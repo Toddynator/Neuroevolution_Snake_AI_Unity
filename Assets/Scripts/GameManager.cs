@@ -35,6 +35,8 @@ public class GameManager : MonoBehaviour
     private int generation = 0;
     private int currentSnake = 0; // Run the games sequentially, this is how newly created snakes will get their corresponding DNA on initialization.
     private DNA bestPerformer = null;
+    private bool simulationTerminated = false;
+    private bool snakeCreated = false;
 
     public TextMeshProUGUI distanceToObstacleText;
     public TextMeshProUGUI distanceToAppleText;
@@ -121,48 +123,73 @@ public class GameManager : MonoBehaviour
         /// UPDATE UI
         // Later this should probably be moved to game controller, and game controller should be in charge of selecting the snake and updating the UI.
 
-        distanceToObstacleText.text = "Distance to Obstacle: " + snake.distanceToObstacleInFront;
-        distanceToAppleText.text = "Distance to Apple: " + snake.distanceToApple;
-        seeAppleText.text = "Sees Apple: " + snake.seeApple;
-        snakeNumText.text = "Snake Number: " + currentSnake;
-        popSizeText.text = "Population Size: " + populationSize;
-        genNumText.text = "Generation: " + generation;
-        timeStepText.text = "TimeStep: " + fixedTimeStep;
+        if (snake != null)
+        {
+            distanceToObstacleText.text = "Distance to Obstacle: " + snake.distanceToObstacleInFront;
+            distanceToAppleText.text = "Distance to Apple: " + snake.distanceToApple;
+            seeAppleText.text = "Sees Apple: " + snake.seeApple;
+            snakeNumText.text = "Snake Number: " + currentSnake;
+            popSizeText.text = "Population Size: " + populationSize;
+            genNumText.text = "Generation: " + generation;
+            timeStepText.text = "TimeStep: " + fixedTimeStep;
+        }
     }
 
     public void FixedUpdate()
     {
-        if (snake.alive == false)
+        // Should defer creation of snake from destroying it (Unity defers destroyed process I assume, since this has been an issue otherwise).
+        if (!snakeCreated)
         {
-            // Determine if snake is the best candidate.
-            population[currentSnake].fitness = snake.CalculateFitness();
-            if (population[currentSnake].fitness > bestPerformer.fitness)
-            {
-                // Store the dna (Once program is terminated, can then use the best DNA for the AI).
-                // Could optionally serialize it as well.
-                bestPerformer = snake.dna;
-            }
-
-            // Remove the previous Snake
-            Destroy(snake); 
-            currentSnake++;          
-            if (currentSnake >= population.Length)
-            {
-                // Next Generation
-                generation++;
-
-                //// TERMINATION TODO, going to let it run forever for now.
-                //if (generation > generationLimit)
-                //{
-
-                //}
-
-                createNewGeneration();
-
-                currentSnake = 0;
-            }
+            // Need to ensure it doesn't try to recreate a snake whilst it is already pending creation.
+            // Been stuck in an infinite loop otherwise.
             CreateSnake();
         }
+        if (snake.alive == false)
+        {
+            if (simulationTerminated == false)
+            {
+                // Determine if snake is the best candidate.
+                population[currentSnake].fitness = snake.CalculateFitness();
+                if (population[currentSnake].fitness > bestPerformer.fitness)
+                {
+                    // Store the dna (Once program is terminated, can then use the best DNA for the AI).
+                    // Could optionally serialize it as well.
+                    bestPerformer = snake.dna;
+                }
+
+                // Remove the previous Snake
+                HandleDestroyingSnake();
+                currentSnake++;
+                if (currentSnake >= population.Length)
+                {
+                    // Next Generation
+                    generation++;
+
+                    if (generation > generationLimit)
+                    {
+                        simulationTerminated = true;
+                    }
+                    else
+                    {
+                        createNewGeneration();
+                    }
+
+                    currentSnake = 0;
+                }
+            }
+            else
+            {
+                // Recreate the best snake over and over after simulation is terminated.
+                HandleDestroyingSnake();
+            }
+        }
+    }
+
+    private void HandleDestroyingSnake()
+    {
+        //Destroy(snake.gameObject);
+        //snake = null;
+        snakeCreated = false;
     }
 
     private void createNewGeneration()
@@ -193,8 +220,19 @@ public class GameManager : MonoBehaviour
 
     public void CreateSnake()
     {
-        snake = Instantiate(SnakePrefab).GetComponent<SnakeBehaviour>();
-        snake.Initialize(population[currentSnake], SnakeSegmentPrefab, this);
+        GameObject newSnake = Instantiate(SnakePrefab);
+        SnakeBehaviour newSnakeBehaviour = newSnake.GetComponent<SnakeBehaviour>();
+        if (simulationTerminated)
+        {
+            // Use the best performer
+            newSnakeBehaviour.Initialize(bestPerformer, SnakeSegmentPrefab, this);
+        }
+        else
+        {
+            newSnakeBehaviour.Initialize(population[currentSnake], SnakeSegmentPrefab, this);
+        }
+        snakeCreated = true;
+        snake = newSnakeBehaviour;
     }
 
     public void SetTimeStep(string stepString) // Used by inputField UI to adjust timestep during runtime
