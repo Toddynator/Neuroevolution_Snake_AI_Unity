@@ -7,11 +7,18 @@ using Mono.Cecil;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+
+public enum TileType
+{
+    Empty = 0,
+    Wall = 1,
+    Apple = 2,
+    Snake = 3
+}
+
 public class GameManager : MonoBehaviour
 {
-    public GameObject FoodPrefab;
-    public GameObject SnakePrefab;
-    public Transform SnakeSegmentPrefab;
+    public GameObject SnakeGamePrefab;
 
     /// SNAKE SETTINGS
 
@@ -61,6 +68,8 @@ public class GameManager : MonoBehaviour
         Time.fixedDeltaTime = fixedTimeStep;
         timeStepInput.onEndEdit.AddListener(delegate { SetTimeStep(timeStepInput.text); }); // This will call the Set function when input is finished
 
+        SceneSize.x = Mathf.Max(4.0f, SceneSize.x);
+        SceneSize.y = Mathf.Max(4.0f, SceneSize.y);
         // Ensure scene size is even so that camera is always centred.
         if (SceneSize.x % 2 != 0) { SceneSize.x += 1; }
         if (SceneSize.y % 2 != 0) { SceneSize.y += 1; }
@@ -83,19 +92,6 @@ public class GameManager : MonoBehaviour
             camera.orthographicSize = baseCameraSize + (cameraSizeIncrement.y * sizeDifference.y);
         }
 
-        /// SETUP THE WALLS 
-
-        walls = GameObject.FindGameObjectsWithTag("Wall");
-        walls[0].transform.position = new Vector3(Mathf.Round(-SceneSize.x * 0.5f) - 1.0f, 0.0f, 0.0f);
-        walls[1].transform.position = new Vector3(Mathf.Round(SceneSize.x * 0.5f) + 1.0f, 0.0f, 0.0f);
-        walls[2].transform.position = new Vector3(0.0f, Mathf.Round(SceneSize.y * 0.5f) + 1.0f, 0.0f);
-        walls[3].transform.position = new Vector3(0.0f, Mathf.Round(-SceneSize.y * 0.5f) - 1.0f, 0.0f);
-
-        walls[0].transform.localScale = new Vector3(1.0f, SceneSize.y + 1.0f, 0.0f);
-        walls[1].transform.localScale = new Vector3(1.0f, SceneSize.y + 1.0f, 0.0f);
-        walls[2].transform.localScale = new Vector3(SceneSize.x + 3.0f, 1.0f, 0.0f);
-        walls[3].transform.localScale = new Vector3(SceneSize.x + 3.0f, 1.0f, 0.0f);
-
         /// PREPARE THE SNAKES
 
         populationSize = Mathf.Max(populationSize, 1); // EDGE CASE: Ensure population size is never 0.
@@ -111,15 +107,6 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // Check if apple should be respawned
-        if (GameObject.FindGameObjectsWithTag("Food").Length == 0)
-        {
-            Vector3 randomizedPosition = Vector3.zero;
-            randomizedPosition.x = Mathf.Round(Random.Range(Mathf.Round(-SceneSize.x * 0.5f), Mathf.Round(SceneSize.x * 0.5f)));
-            randomizedPosition.y = Mathf.Round(Random.Range(Mathf.Round(-SceneSize.y * 0.5f), Mathf.Round(SceneSize.y * 0.5f)));
-            apple = Instantiate(FoodPrefab, randomizedPosition, Quaternion.identity);
-        }
-
         /// UPDATE UI
         // Later this should probably be moved to game controller, and game controller should be in charge of selecting the snake and updating the UI.
 
@@ -187,8 +174,6 @@ public class GameManager : MonoBehaviour
 
     private void HandleDestroyingSnake()
     {
-        //Destroy(snake.gameObject);
-        //snake = null;
         snakeCreated = false;
     }
 
@@ -220,16 +205,18 @@ public class GameManager : MonoBehaviour
 
     public void CreateSnake()
     {
-        GameObject newSnake = Instantiate(SnakePrefab);
+        if (snake != null) { Destroy(snake.gameObject); }
+        GameObject newSnake = Instantiate(SnakeGamePrefab);
+        newSnake.transform.position = new Vector3(0.0f - (SceneSize.x/2), 0.0f - (SceneSize.y/2), 0.0f); // Centre the game on the screen
         SnakeBehaviour newSnakeBehaviour = newSnake.GetComponent<SnakeBehaviour>();
         if (simulationTerminated)
         {
             // Use the best performer
-            newSnakeBehaviour.Initialize(bestPerformer, SnakeSegmentPrefab, this);
+            newSnakeBehaviour.Initialize(bestPerformer, this);
         }
         else
         {
-            newSnakeBehaviour.Initialize(population[currentSnake], SnakeSegmentPrefab, this);
+            newSnakeBehaviour.Initialize(population[currentSnake], this);
         }
         snakeCreated = true;
         snake = newSnakeBehaviour;

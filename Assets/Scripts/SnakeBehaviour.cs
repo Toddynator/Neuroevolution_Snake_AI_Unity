@@ -4,202 +4,212 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Tilemaps;
 
 public class SnakeBehaviour : MonoBehaviour
 {
-    private GameManager GameManager;
-    private Transform SnakeSegment;
-    private List<Transform> segments;
+    private GameManager GameManager; // For any game settings that the snake may need to check. Should probably remove this and pass in variables on Init!
 
-    private Vector2 direction = Vector2.right;
-    private Vector2 prevDirection = Vector2.right; // For stopping the snake from moving back into itself
+    /// CORE
+
+    public Tilemap tilemap; // What it renders tiles to
+    private Tile baseTile; // Can just colour this tile
+    private TileType[,] grid; // X & Y, Represents every tile in the game of Snake.
+    private Vector2Int applePosition;
+    private Vector2Int snakeHeadStartPosition;
+    private List<Vector2Int> segments;
+    private List<Color> segmentColours = new List<Color>(); // Will remain a size of 1 unless gradient is enabled in the Game Manager.
+    public DNA dna; // How the Snake chooses its actions.
+    public Color AppleColor = new Color(1.0f, 0.0f, 0.0f);
+    public Color WallColor = new Color(1.0f, 1.0f, 1.0f);
+
+    /// MOVEMENT
+
+    private Vector2Int direction = Vector2Int.right;
+    private Vector2Int prevDirection = Vector2Int.right; // For stopping the snake from moving back into itself. Only important if I don't use turnDirection for whatever reason. (E.g. playing snake myself)
     private int turnDirection = 0; // -1 to 1, 0 to move forward
+
+    /// STATS
 
     public int distanceToObstacleInFront;
     public float distanceToApple; // Since I want to consider distance even if it isn't in line of sight, this is a float (To account for diagonals)
     public bool seeApple;
     public bool alive = true;
     private int numMovesSinceLastApple = 0;
-
-    public DNA dna;
-
     public int numberOfApplesConsumed = 0;
     public int numOfMoves = 0;
     public int averageMovesPerApple = 0;
     public int numOfMovesWhenGreatestLengthReached = 0;
 
-    public void Initialize(DNA newDNA, Transform snakeSegment, GameManager gameManager)
+    public void Initialize(DNA newDNA, GameManager gameManager)
     {
         dna = newDNA;
-        SnakeSegment = snakeSegment;
         GameManager = gameManager;
+        segmentColours.Add(gameManager.headColor);
+
+        baseTile = ScriptableObject.CreateInstance<Tile>();
+        Texture2D texture = new Texture2D(1, 1);
+        texture.SetPixel(0, 0, Color.white);
+        texture.Apply();
+        baseTile.sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
+        baseTile.flags = TileFlags.None; // By default tiles are set to lock the colour.
+
+        /// SETUP THE WALLS 
+
+        grid = new TileType[(int)gameManager.SceneSize.x, (int)gameManager.SceneSize.y];
+        for (int x = 0; x < gameManager.SceneSize.x; x++)
+        {
+            for (int y = 0; y < gameManager.SceneSize.y; y++)
+            {
+                // Create walls at the edges of the arena.
+                if (x == 0 || x == gameManager.SceneSize.x - 1 || y == 0 || y == gameManager.SceneSize.y - 1)
+                {
+                    grid[x, y] = TileType.Wall;
+                }
+            }
+        }
+        // Setup tilemap ~ Might be able to optimize this by pre-creating in GameManager and duplicating it.
+        for (int x = 0; x < grid.GetLength(0); x++)
+        {
+            for (int y = 0; y < grid.GetLength(1); y++)
+            {
+                if (grid[x, y] == TileType.Wall)
+                {
+                    updateTilemapTile(new Vector2Int(x, y), WallColor);
+                }
+                else if (grid[x, y] == TileType.Apple)
+                {
+                    updateTilemapTile(new Vector2Int(x, y), AppleColor);
+                }
+            }
+        }
+
+        snakeHeadStartPosition = new Vector2Int((int)(grid.GetLength(0) / 2), (int)(grid.GetLength(1) / 2)); // Start at the midpoint.
+        updateTilemapTile(snakeHeadStartPosition, segmentColours[0]);
+        spawnApple();
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        segments = new List<Transform>();
-        segments.Add(this.transform);
+        segments = new List<Vector2Int>();
+        segments.Add(snakeHeadStartPosition);
     }
 
     // Update is called once per frame
     void Update()
     {
         // Ignore directly opposite movement inputs so that snake doesn't go back into itself.
+        // Manual controls for an actual person to play snake if I add a way to disable the AI.
 
-        //if (Input.GetKeyDown(KeyCode.W) && prevDirection != Vector2.down)
+        //if (Input.GetKeyDown(KeyCode.W) && prevDirection != Vector2Int.down)
         //{
-        //    direction = Vector2.up;
+        //    direction = Vector2Int.up;
         //}
-        //else if (Input.GetKeyDown(KeyCode.S) && prevDirection != Vector2.up)
+        //else if (Input.GetKeyDown(KeyCode.S) && prevDirection != Vector2Int.up)
         //{
-        //    direction = Vector2.down;
+        //    direction = Vector2Int.down;
         //}
-        //else if (Input.GetKey(KeyCode.A) && prevDirection != Vector2.right)
+        //else if (Input.GetKey(KeyCode.A) && prevDirection != Vector2Int.right)
         //{
-        //    direction = Vector2.left;
+        //    direction = Vector2Int.left;
         //}
-        //else if (Input.GetKeyDown(KeyCode.D) && prevDirection != Vector2.left)
+        //else if (Input.GetKeyDown(KeyCode.D) && prevDirection != Vector2Int.left)
         //{
-        //    direction = Vector2.right;
+        //    direction = Vector2Int.right;
         //}
-
-        ///// DEBUG
-        //if (Input.GetKeyDown(KeyCode.W))
-        //{
-        //    turnDirection = 0;
-        //}
-        //else if (Input.GetKey(KeyCode.A))
-        //{
-        //    turnDirection = -1;
-        //}
-        //else if (Input.GetKeyDown(KeyCode.D))
-        //{
-        //    turnDirection = 1;
-        //}
-        ///// DEBUG    
     }
 
+    // Fixed update is ideal for Classic Snake, can control the rate of the game by changing the TimeStep of the project.
     private void FixedUpdate()
     {
-        /// MOVE SNAKE
+        if(!alive) { return; }
 
-        // Turn snake ~ Currently use Genes as a list of inputs.
-        turnDirection = dna.genes[numOfMoves % dna.genes.Length];
-        if (turnDirection == -1) // Turn Left
-        {
-            if (direction == Vector2.up)
-            {
-                direction = Vector2.left;
-            }
-            else if (direction == Vector2.left)
-            {
-                direction = Vector2.down;
-            }
-            else if (direction == Vector2.down)
-            {
-                direction = Vector2.right;
-            }
-            else
-            {
-                direction = Vector2.up;
-            }
-        }
-        else if (turnDirection == 1) // Turn Right
-        {
-            if (direction == Vector2.up)
-            {
-                direction = Vector2.right;
-            }
-            else if (direction == Vector2.right)
-            {
-                direction = Vector2.down;
-            }
-            else if (direction == Vector2.down)
-            {
-                direction = Vector2.left;
-            }
-            else
-            {
-                direction = Vector2.up;
-            }
-        }
+        //// MOVE SNAKE
 
-        // Update segments
+        updateDirection();
+
+        /// Update Segments
+        // Only need to remove the last segment of the snake.
+        grid[segments[segments.Count - 1].x, segments[segments.Count - 1].y] = TileType.Empty; 
+        removeTilemapTile(segments[segments.Count - 1]); 
         for (int i = segments.Count - 1; i > 0; i--)
         {
-            segments[i].position = segments[i - 1].position;
+            segments[i] = segments[i - 1];
+            grid[segments[i].x, segments[i].y] = TileType.Snake;         
+            if(GameManager.SnakeColourGradient) { updateTilemapTile(segments[i], segmentColours[i]); }
+            else { updateTilemapTile(segments[i], segmentColours[0]); }
         }
-        this.transform.position = new Vector3(Mathf.Round(this.transform.position.x) + direction.x, Mathf.Round(this.transform.position.y) + direction.y, 0.0f);
+        /// Update Head
+        segments[0] += direction;
+
         prevDirection = direction;
         numOfMoves++;
         numMovesSinceLastApple++;
 
-        /// SNAKE SENSES ~ What it sees
-
-        float rayLength = Mathf.Max(GameManager.SceneSize.x, GameManager.SceneSize.y);
-        Vector2 position = this.transform.position;
-        Debug.DrawRay(position, direction * rayLength, Color.blue); // Draws a line in Scene View (You can see it in the game if gizmo's are enabled).
-        RaycastHit2D hit;
-        hit = Physics2D.Linecast(position, position + (direction * rayLength), LayerMask.GetMask("Wall", "Snake")); // Pretty much guaranteed to hit something
-        if (hit.collider != null)
+        // Check for collisions ~ Only need to check for collisions in the head.
+        if (grid[segments[0].x, segments[0].y] == TileType.Wall || grid[segments[0].x, segments[0].y] == TileType.Snake)
         {
-            distanceToObstacleInFront = (int)hit.distance;
+            gameOver();
         }
-        hit = Physics2D.Linecast(position, position + (direction * rayLength), LayerMask.GetMask("Food"));
-        if (hit.collider != null)
+        else if (grid[segments[0].x, segments[0].y] == TileType.Apple)
         {
-            //distanceToApple = (int)hit.distance;
-            seeApple = true;
-        }
-        else { seeApple = false; }
-        if (GameManager.GetApple() != null)
-        {
-            Vector2 difference = GameManager.GetApple().transform.position - transform.position;
-            distanceToApple = difference.magnitude;
-        }
+            Debug.Log("Apple Consumed");
+            grow();
+            spawnApple();
 
-        /// TERMINATE EARLY ~ e.g. snake takes too long
-
-        if (numMovesSinceLastApple >= GameManager.SceneSize.x * GameManager.SceneSize.y)
-        {
-            GameOver();
-        }
-
-        // NOTE: This should be removed if I change dna to instead be used as weightings and therefore have a 'reactive' AI.
-        if (numMovesSinceLastApple > dna.genes.Length)
-        {
-            GameOver();
-        }
-    }
-
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Food"))
-        {
-            Destroy(other.gameObject);
-            Grow();
             numberOfApplesConsumed++;
             numOfMovesWhenGreatestLengthReached = numOfMoves;
             numMovesSinceLastApple = 0;
         }
-        if (other.CompareTag("Wall"))
+        if (alive) // This is more a personal choice for visuals, I don't want the snake head to overlap the object it collided with on death.
         {
-            GameOver();
+            grid[segments[0].x, segments[0].y] = TileType.Snake;
+            updateTilemapTile(segments[0], segmentColours[0]);
         }
-        // NOTE: Could modify this so that it verifies it is one of the stored segment tiles, so that don't have to rely on unity collisions
-        if (other.CompareTag("Player"))
+
+        //// SNAKE SENSES ~ What it sees
+
+        //float rayLength = Mathf.Max(GameManager.SceneSize.x, GameManager.SceneSize.y);
+        //Vector2 position = this.transform.position;
+        //Debug.DrawRay(position, direction * rayLength, Color.blue); // Draws a line in Scene View (You can see it in the game if gizmo's are enabled).
+        //RaycastHit2D hit;
+        //hit = Physics2D.Linecast(position, position + (direction * rayLength), LayerMask.GetMask("Wall", "Snake")); // Pretty much guaranteed to hit something
+        //if (hit.collider != null)
+        //{
+        //    distanceToObstacleInFront = (int)hit.distance;
+        //}
+        //hit = Physics2D.Linecast(position, position + (direction * rayLength), LayerMask.GetMask("Food"));
+        //if (hit.collider != null)
+        //{
+        //    //distanceToApple = (int)hit.distance;
+        //    seeApple = true;
+        //}
+        //else { seeApple = false; }
+        //if (GameManager.GetApple() != null)
+        //{
+        //    Vector2 difference = GameManager.GetApple().transform.position - transform.position;
+        //    distanceToApple = difference.magnitude;
+        //}
+
+        //// TERMINATE EARLY ~ e.g. snake takes too long
+
+        if (numMovesSinceLastApple >= GameManager.SceneSize.x * GameManager.SceneSize.y)
         {
-            GameOver();
+            gameOver();
+        }
+        // NOTE: This should be removed if I change dna to instead be used as weightings and therefore have a 'reactive' AI.
+        if (numMovesSinceLastApple > dna.genes.Length)
+        {
+            gameOver();
         }
     }
 
-    private void Grow()
+    private void grow()
     {
         for (int i = 0; i < GameManager.GrowthPerApple; i++)
         {
-            Transform segment = Instantiate(SnakeSegment);
-            segment.position = segments[segments.Count - 1].position;
+            Vector2Int segment = segments[segments.Count - 1];
             segments.Add(segment);
         }
 
@@ -208,28 +218,88 @@ public class SnakeBehaviour : MonoBehaviour
         if (GameManager.SnakeColourGradient)
         {
             for (int i = 0; i < segments.Count; i++)
-            {
+            {            
                 // Gradient from head to tail
                 Color color = Color.Lerp(GameManager.headColor, GameManager.tailColor, (float)i / (segments.Count - 1));
-                SpriteRenderer sprite = segments[i].GetComponent<SpriteRenderer>();
-                if (sprite != null) { sprite.color = color; }
+                if (i > segmentColours.Count - 1) { segmentColours.Add(color); }
+                else { segmentColours[i] = color; }                 
             }
         }
+
+        // EDGE CASE: Snake has outgrown the level.
+        if (segments.Count >= (grid.GetLength(0) - 1) * (grid.GetLength(1) - 1)) { gameOver(); return; }
     }
 
-    private void GameOver()
+    private void spawnApple()
     {
-        //Debug.Log("Snake GameOver()");
-        //SceneManager.LoadScene(SceneManager.GetActiveScene().name); // Restart
+        /// TODO, add a way to use the same seed every time, should use apples consumed to ensure apples spawn in a different location each time as well.
+        /// Also should improve this so that it keeps track of positions it has already tried.   
 
-        alive = false;
-        for (int i = 0; i < segments.Count; i++)
+        bool emptyPositionFound = false;
+        while (!emptyPositionFound)
         {
-            Destroy(segments[i].gameObject);
+            applePosition = Vector2Int.zero;
+            // Account for walls on the edge tiles.
+            applePosition.x = UnityEngine.Random.Range(1, grid.GetLength(0) - 1);
+            applePosition.y = UnityEngine.Random.Range(1, grid.GetLength(1) - 1);
+            // Check if its already occupied by the snake
+            if (grid[applePosition.x, applePosition.y] == TileType.Empty)
+            {
+                emptyPositionFound = true;
+                grid[applePosition.x, applePosition.y] = TileType.Apple;
+            }        
         }
-        segments.Clear();
+        updateTilemapTile(new Vector2Int(applePosition.x, applePosition.y), AppleColor);
+    }
 
+    private void gameOver()
+    {
+        alive = false;
         if (numberOfApplesConsumed > 0) { averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed; }
+    }
+
+    private void updateDirection()
+    {
+        // Turn snake ~ Currently use Genes as a list of inputs.
+        turnDirection = dna.genes[numOfMoves % dna.genes.Length];
+        if (turnDirection == -1) // Turn Left
+        {
+            if (direction == Vector2Int.up)
+            {
+                direction = Vector2Int.left;
+            }
+            else if (direction == Vector2Int.left)
+            {
+                direction = Vector2Int.down;
+            }
+            else if (direction == Vector2Int.down)
+            {
+                direction = Vector2Int.right;
+            }
+            else
+            {
+                direction = Vector2Int.up;
+            }
+        }
+        else if (turnDirection == 1) // Turn Right
+        {
+            if (direction == Vector2.up)
+            {
+                direction = Vector2Int.right;
+            }
+            else if (direction == Vector2.right)
+            {
+                direction = Vector2Int.down;
+            }
+            else if (direction == Vector2.down)
+            {
+                direction = Vector2Int.left;
+            }
+            else
+            {
+                direction = Vector2Int.up;
+            }
+        }
     }
 
     public float CalculateFitness()
@@ -246,5 +316,18 @@ public class SnakeBehaviour : MonoBehaviour
         dna.fitness = score;
 
         return score;
+    }
+
+    private void updateTilemapTile(Vector2Int gridPosition, Color color)
+    {
+        Vector3Int tilePosition = new Vector3Int(gridPosition.x, gridPosition.y, 0);
+        tilemap.SetTile(tilePosition, baseTile);
+        tilemap.SetColor(tilePosition, color);
+    }
+
+    private void removeTilemapTile(Vector2Int gridPosition)
+    {
+        Vector3Int tilePosition = new Vector3Int(gridPosition.x, gridPosition.y, 0);
+        tilemap.SetTile(tilePosition, null);
     }
 }
