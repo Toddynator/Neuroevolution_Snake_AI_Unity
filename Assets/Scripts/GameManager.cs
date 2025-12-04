@@ -35,6 +35,8 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI snakeNumText;
     public TextMeshProUGUI popSizeText;
     public TextMeshProUGUI genNumText;
+    public TMP_InputField timeStepInput;
+    public TextMeshProUGUI timeStepText;
 
     /// GAMEOBJECTS
 
@@ -48,6 +50,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         Time.fixedDeltaTime = fixedTimeStep;
+        timeStepInput.onEndEdit.AddListener(delegate { SetTimeStep(timeStepInput.text); }); // This will call the Set function when input is finished
 
         // Ensure scene size is even so that camera is always centred.
         if (SceneSize.x % 2 != 0) { SceneSize.x += 1; }
@@ -111,6 +114,7 @@ public class GameManager : MonoBehaviour
         snakeNumText.text = "Snake Number: " + currentSnake;
         popSizeText.text = "Population Size: " + populationSize;
         genNumText.text = "Generation: " + generation;
+        timeStepText.text = "TimeStep: " + fixedTimeStep;
     }
 
     public void FixedUpdate()
@@ -136,5 +140,12 @@ public class GameManager : MonoBehaviour
     {
         snake = Instantiate(SnakePrefab).GetComponent<SnakeBehaviour>();
         snake.Initialize(snakes[currentSnake], SnakeSegmentPrefab, this);
+    }
+
+    public void SetTimeStep(string stepString) // Used by inputField UI to adjust timestep during runtime
+    {
+        float step = float.Parse(stepString);
+        Time.fixedDeltaTime = step;
+        fixedTimeStep = step;
     }
 }

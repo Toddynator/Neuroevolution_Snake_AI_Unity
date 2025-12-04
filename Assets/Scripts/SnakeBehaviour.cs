@@ -160,6 +160,7 @@ public class SnakeBehaviour : MonoBehaviour
         {
             GameOver();
         }
+        // NOTE: Could modify this so that it verifies it is one of the stored segment tiles, so that don't have to rely on unity collisions
         if (other.CompareTag("Player"))
         {
             GameOver();
