@@ -13,6 +13,7 @@ integer of -1 to 1, with 0 representing moving forward without turning.
 public class DNA
 {
     public int[] genes;
+    public float fitness = 0.0f;
 
     public DNA(int numGenes)
     {
@@ -24,15 +25,6 @@ public class DNA
         {
             genes[i] = UnityEngine.Random.Range(-1, 1);
         }
-    }
-
-    public float CalculateFitness()
-    {
-        float score = 0.0f;
-
-        //// TODO
-
-        return score;
     }
 
     public DNA Crossover (DNA otherParent)

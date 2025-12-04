@@ -26,8 +26,13 @@ public class GameManager : MonoBehaviour
     /// GENETIC ALGORITHMS
 
     public int populationSize = 10;
+    public float mutationRate = 0.01f;
+    public int generationLimit = 15; // When to stop simulating and display the best candidate.
+    public int numGenes = 10;
     private int generation = 0;
     private int currentSnake = 0; // Run the games sequentially, this is how newly created snakes will get their corresponding DNA on initialization.
+    private float greatestFitness = 0.0f;
+    private DNA bestPerformer = null;
 
     public TextMeshProUGUI distanceToObstacleText;
     public TextMeshProUGUI distanceToAppleText;
@@ -40,7 +45,7 @@ public class GameManager : MonoBehaviour
 
     /// GAMEOBJECTS
 
-    private DNA[] snakes;
+    private DNA[] snakeChromosomes;
     private SnakeBehaviour snake;
     private GameObject[] walls;
     private GameObject apple;
@@ -89,7 +94,11 @@ public class GameManager : MonoBehaviour
 
         /// PREPARE THE SNAKES
 
-        snakes = new DNA[populationSize];
+        snakeChromosomes = new DNA[populationSize];
+        for (int i = 0; i < populationSize; i++)
+        {
+            snakeChromosomes[i] = new DNA(numGenes);
+        }
         CreateSnake();
     }
 
@@ -121,9 +130,20 @@ public class GameManager : MonoBehaviour
     {
         if (snake.alive == false)
         {
-            Destroy(snake); // Remove the previous Snake
+            // Determine if snake is the best candidate.
+            snakeChromosomes[currentSnake].fitness = snake.CalculateFitness();
+            if (snakeChromosomes[currentSnake].fitness > greatestFitness)
+            {
+                // Store the dna (Once program is terminated, can then use the best DNA for the AI).
+                // Could optionally serialize it as well.
+                bestPerformer = snake.dna;
+                greatestFitness = snakeChromosomes[currentSnake].fitness;
+            }
+
+            // Remove the previous Snake
+            Destroy(snake); 
             currentSnake++;          
-            if (currentSnake >= snakes.Length)
+            if (currentSnake >= snakeChromosomes.Length)
             {
                 // Next Generation
                 generation++;
@@ -139,7 +159,7 @@ public class GameManager : MonoBehaviour
     public void CreateSnake()
     {
         snake = Instantiate(SnakePrefab).GetComponent<SnakeBehaviour>();
-        snake.Initialize(snakes[currentSnake], SnakeSegmentPrefab, this);
+        snake.Initialize(snakeChromosomes[currentSnake], SnakeSegmentPrefab, this);
     }
 
     public void SetTimeStep(string stepString) // Used by inputField UI to adjust timestep during runtime

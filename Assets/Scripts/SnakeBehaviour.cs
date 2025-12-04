@@ -19,8 +19,14 @@ public class SnakeBehaviour : MonoBehaviour
     public float distanceToApple; // Since I want to consider distance even if it isn't in line of sight, this is a float (To account for diagonals)
     public bool seeApple;
     public bool alive = true;
+    private int numMovesSinceLastApple = 0;
 
     public DNA dna;
+
+    public int numberOfApplesConsumed = 0;
+    public int numOfMoves = 0;
+    public int averageMovesPerApple = 0;
+    public int numOfMovesWhenGreatestLengthReached = 0;
 
     public void Initialize(DNA newDNA, Transform snakeSegment, GameManager gameManager)
     {
@@ -123,6 +129,8 @@ public class SnakeBehaviour : MonoBehaviour
         }
         this.transform.position = new Vector3(Mathf.Round(this.transform.position.x) + direction.x, Mathf.Round(this.transform.position.y) + direction.y, 0.0f);
         prevDirection = direction;
+        numOfMoves++;
+        numMovesSinceLastApple++;
 
         /// SNAKE SENSES ~ What it sees
 
@@ -155,6 +163,9 @@ public class SnakeBehaviour : MonoBehaviour
         {
             Destroy(other.gameObject);
             Grow();
+            numberOfApplesConsumed++;
+            numOfMovesWhenGreatestLengthReached = numOfMoves;
+            numMovesSinceLastApple = 0;
         }
         if (other.CompareTag("Wall"))
         {
@@ -194,10 +205,29 @@ public class SnakeBehaviour : MonoBehaviour
     {
         //Debug.Log("Snake Died");
         //SceneManager.LoadScene(SceneManager.GetActiveScene().name); // Restart
+
         alive = false;
         for (int i = 0; i < segments.Count; i++)
         {
             Destroy(segments[i].gameObject);
         }
+
+        if (numberOfApplesConsumed > 0) { averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed; }
+    }
+
+    public float CalculateFitness()
+    {
+        float score = 0.0f;
+
+        const float SCORE_PER_APPLE = 10.0f;
+        const float SCORE_MOVES_MULTIPLIER = 2.0f;
+        const float SCORE_DECAY_RATE = 0.01f; // Should improve this to be based on maximum number of moves possible in a scene.
+
+        score += numberOfApplesConsumed * SCORE_PER_APPLE;
+        score = score * Mathf.Exp(numOfMovesWhenGreatestLengthReached * -(SCORE_DECAY_RATE)) * SCORE_MOVES_MULTIPLIER;
+
+        dna.fitness = score;
+
+        return score;
     }
 }
