@@ -49,7 +49,6 @@ public class GameManager : MonoBehaviour
     private DNA bestDNA = null; // Highest Fitness DNA
     private int bestFitnessGeneration = 0;
     private bool simulationTerminated = false;
-    private bool snakeCreated = false;
 
     public TextMeshProUGUI distanceToObstacleText;
     public TextMeshProUGUI distanceToAppleText;
@@ -71,9 +70,6 @@ public class GameManager : MonoBehaviour
 
     private DNA[] population;
     private SnakeBehaviour snake;
-    private GameObject[] walls;
-    private GameObject apple;
-    public GameObject GetApple() { return apple; } // Purely so it doesn't show on the inspector and make things confusing. I still want to be able to read it in my snake class though.
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -156,13 +152,6 @@ public class GameManager : MonoBehaviour
 
     public void FixedUpdate()
     {
-        // Should defer creation of snake from destroying it (Unity defers destroyed process I assume, since this has been an issue otherwise).
-        if (!snakeCreated)
-        {
-            // Need to ensure it doesn't try to recreate a snake whilst it is already pending creation.
-            // Been stuck in an infinite loop otherwise.
-            CreateSnake();
-        }
         if (snake.alive == false)
         {
             if (simulationTerminated == false)
@@ -177,8 +166,7 @@ public class GameManager : MonoBehaviour
                     bestFitnessGeneration = generation;
                 }
 
-                // Remove the previous Snake
-                HandleDestroyingSnake();
+                // Move to the next snake
                 currentSnake++;
                 if (currentSnake >= population.Length)
                 {
@@ -196,18 +184,15 @@ public class GameManager : MonoBehaviour
 
                     currentSnake = 0;
                 }
+                // Update snake DNA
+                snake.Restart(population[currentSnake]);
             }
             else
             {
                 // Recreate the best snake over and over after simulation is terminated.
-                HandleDestroyingSnake();
+                snake.Restart(bestDNA.Clone());
             }
         }
-    }
-
-    private void HandleDestroyingSnake()
-    {
-        snakeCreated = false;
     }
 
     private void createNewGeneration()
@@ -257,7 +242,6 @@ public class GameManager : MonoBehaviour
         {
             newSnakeBehaviour.Initialize(population[currentSnake], this);
         }
-        snakeCreated = true;
         snake = newSnakeBehaviour;
     }
 

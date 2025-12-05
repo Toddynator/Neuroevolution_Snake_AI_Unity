@@ -72,7 +72,6 @@ public class SnakeBehaviour : MonoBehaviour
                 }
             }
         }
-        // Setup tilemap ~ Might be able to optimize this by pre-creating in GameManager and duplicating it.
         for (int x = 0; x < gridSize.x; x++)
         {
             for (int y = 0; y < gridSize.y; y++)
@@ -95,7 +94,7 @@ public class SnakeBehaviour : MonoBehaviour
         spawnApple();
     }
 
-    void Restart(DNA newDNA)
+    public void Restart(DNA newDNA)
     {
         dna = newDNA;
 
@@ -110,18 +109,24 @@ public class SnakeBehaviour : MonoBehaviour
         numOfMoves = 0;
         averageMovesPerApple = 0;
         numOfMovesWhenGreatestLengthReached = 0;
+        distanceToApple = 0;
+        distanceToObstacleInFront = 0;
+        seeApple = false;
 
-        // Remove every tile except the head, which might have gone over a wall position on the previous game.
-        for (int i = 1; i < segments.Count; i++) 
+        // EDGE CASE: Remove apple first incase it was overlapped by snake
+        grid[applePosition.x, applePosition.y] = TileType.Empty;
+        removeTilemapTile(applePosition);
+        // Remove segments
+        for (int i = 0; i < segments.Count; i++) 
         {
             grid[segments[i].x, segments[i].y] = TileType.Empty;
             removeTilemapTile(segments[i]);
         }
-        removeTilemapTile(segments[0]);
         // Replace wall tile if the snake was over a wall position.
         if (segments[0].x == 0 || segments[0].x == gridSize.x - 1 || segments[0].y == 0 || segments[0].y == gridSize.y - 1)
         {
             grid[segments[0].x, segments[0].y] = TileType.Wall;
+            updateTilemapTile(segments[0], WallColor);
         }
         segments[0] = snakeHeadStartPosition;
         segments = new List<Vector2Int>();
@@ -130,7 +135,6 @@ public class SnakeBehaviour : MonoBehaviour
         updateTilemapTile(segments[0], segmentColours[0]);
 
         // Regenerate Apple
-        removeTilemapTile(applePosition);
         spawnApple();
     }
 
