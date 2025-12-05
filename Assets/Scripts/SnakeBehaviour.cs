@@ -24,6 +24,7 @@ public class SnakeBehaviour : MonoBehaviour
     public DNA dna; // How the Snake chooses its actions.
     public Color AppleColor = new Color(1.0f, 0.0f, 0.0f);
     public Color WallColor = new Color(1.0f, 1.0f, 1.0f);
+    private System.Random random;
 
     /// MOVEMENT
 
@@ -49,6 +50,14 @@ public class SnakeBehaviour : MonoBehaviour
         dna = newDNA;
         GameManager = gameManager;
         segmentColours.Add(gameManager.headColor);
+        if (GameManager.fixedRNGSeed)
+        {
+            random = new System.Random(GameManager.randomGenerationSeed);
+        }
+        else
+        {
+            random = new System.Random();
+        }
 
         baseTile = ScriptableObject.CreateInstance<Tile>();
         Texture2D texture = new Texture2D(1, 1);
@@ -96,6 +105,10 @@ public class SnakeBehaviour : MonoBehaviour
 
     public void Restart(DNA newDNA)
     {
+        if (GameManager.fixedRNGSeed)
+        {
+            random = new System.Random(GameManager.randomGenerationSeed);
+        }
         dna = newDNA;
 
         // Revert Stats
@@ -294,14 +307,13 @@ public class SnakeBehaviour : MonoBehaviour
         /// TODO, add a way to use the same seed every time, should use apples consumed to ensure apples spawn in a different location each time as well.
         /// Also should improve this so that it keeps track of positions it has already tried.   
 
-        if (GameManager.fixedRNGSeed) { Random.InitState(GameManager.randomGenerationSeed + numberOfApplesConsumed); } // ensure consistent results.
         bool emptyPositionFound = false;
         while (!emptyPositionFound)
         {
             applePosition = Vector2Int.zero;
             // Account for walls on the edge tiles.
-            applePosition.x = UnityEngine.Random.Range(1, gridSize.x - 1);
-            applePosition.y = UnityEngine.Random.Range(1, gridSize.y - 1);
+            applePosition.x = random.Next(1, gridSize.x - 1);
+            applePosition.y = random.Next(1, gridSize.y - 1);
             // Check if its already occupied by the snake
             if (grid[applePosition.x, applePosition.y] == TileType.Empty)
             {
