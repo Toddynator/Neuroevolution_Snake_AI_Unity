@@ -2110,7 +2110,7 @@ MonoBehaviour:
   generationLimitEnabled: 1
   numGenes: 1000
   MutationRate: 0.1
-  SelectionPercentage: 0.5
+  SelectionPercentage: 0.2
   elitistPopulationPercentage: 0.05
   distanceToObstacleText: {fileID: 2121670066}
   distanceToAppleText: {fileID: 2130487619}

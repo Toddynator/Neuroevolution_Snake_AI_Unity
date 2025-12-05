@@ -37,6 +37,7 @@ public class SnakeBehaviour : MonoBehaviour
     public float distanceToApple; // Since I want to consider distance even if it isn't in line of sight, this is a float (To account for diagonals)
     public bool seeApple;
     public bool alive = true;
+    private bool diedToCollision = false;
     private int numMovesSinceLastApple = 0;
     public int numberOfApplesConsumed = 0;
     public int numOfMoves = 0;
@@ -153,6 +154,7 @@ public class SnakeBehaviour : MonoBehaviour
         // Check for collisions ~ Only need to check for collisions in the head.
         if (grid[segments[0].x, segments[0].y] == TileType.Wall || grid[segments[0].x, segments[0].y] == TileType.Snake)
         {
+            diedToCollision = true;
             gameOver();
         }
         else if (grid[segments[0].x, segments[0].y] == TileType.Apple)
@@ -321,12 +323,14 @@ public class SnakeBehaviour : MonoBehaviour
         float score = 0.0f;
 
         const float SCORE_PER_APPLE = 10.0f;
-        const float SCORE_MOVES_MULTIPLIER = 2.0f;
+        const float SCORE_MOVES_MULTIPLIER = 2.0f; // I want to reward optimal routes
+        const float SCORE_COLLISION_PENALTY_MULTIPLIER = 0.9f;
         const float SCORE_DECAY_RATE = 0.01f; // Should improve this to be based on maximum number of moves possible in a scene.
         float maxPossibleDistanceToApple = gridSize.magnitude;
 
         score += numberOfApplesConsumed * SCORE_PER_APPLE; // Primarily reward based on number of apples gained
         score += SCORE_PER_APPLE * (1.0f - distanceToApple / maxPossibleDistanceToApple); // Reward getting closer to the apple with each generation
+        if (diedToCollision) { score *= SCORE_COLLISION_PENALTY_MULTIPLIER; } // Penalise the snake killing itself so that the generations don't get trapped on DNA that involves moving into a wall
         score = score * Mathf.Exp(numOfMovesWhenGreatestLengthReached * -(SCORE_DECAY_RATE)) * SCORE_MOVES_MULTIPLIER; // Should reward / penalise for taking too many moves to get each apple.
 
         dna.fitness = score;
