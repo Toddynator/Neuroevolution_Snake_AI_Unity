@@ -36,7 +36,6 @@ public class GameManager : MonoBehaviour
     /// GENETIC ALGORITHMS
 
     public int populationSize = 10;
-    public float mutationRate = 0.01f;
     public int generationLimit = 15; // When to stop simulating and display the best candidate.
     public int numGenes = 10;
     public float MutationRate = 0.01f;

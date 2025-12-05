@@ -23,7 +23,7 @@ public class DNA
         genes = new int[numGenes];    
         for (int i = 0; i < numGenes; i++)
         {
-            genes[i] = UnityEngine.Random.Range(-1, 1);
+            genes[i] = UnityEngine.Random.Range(-1, 2);
         }
     }
 
@@ -63,23 +63,35 @@ public class DNA
     // Mutation rate between 0.0f and 1.0f
     public void Mutate(float mutationRate)
     {
+        //for (int i = 0; i < genes.Length; i++)
+        //{
+        //    if (UnityEngine.Random.Range(0.0f, 1.0f) < mutationRate)
+        //    {
+        //        // Mutation Based of: https://medium.com/analytics-vidhya/genetic-algorithm-in-unity-using-c-72f0fafb535c
+
+        //        int a = genes[i];
+        //        if (i == genes.Length - 1)
+        //        {
+        //            genes[i] = genes[0];
+        //            genes[0] = a;
+        //        }
+        //        else
+        //        {
+        //            genes[i] = genes[i + 1];
+        //            genes[i + 1] = a;
+        //        }
+        //    }
+        //}
+
+        /// Random Resetting Mutation
+        // One or several positions are randomly selected, a value is determined for each of these positions (In whatever range I use for my genes).
+
         for (int i = 0; i < genes.Length; i++)
         {
             if (UnityEngine.Random.Range(0.0f, 1.0f) < mutationRate)
             {
-                // Mutation Based of: https://medium.com/analytics-vidhya/genetic-algorithm-in-unity-using-c-72f0fafb535c
-
-                int a = genes[i];
-                if (i == genes.Length - 1)
-                {
-                    genes[i] = genes[0];
-                    genes[0] = a;
-                }
-                else
-                {
-                    genes[i] = genes[i + 1];
-                    genes[i + 1] = a;
-                }
+                int geneToEdit = UnityEngine.Random.Range(0, genes.Length);
+                genes[geneToEdit] = UnityEngine.Random.Range(-1, 2);
             }
         }
     }
