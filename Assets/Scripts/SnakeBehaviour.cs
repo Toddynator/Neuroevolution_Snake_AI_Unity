@@ -89,15 +89,55 @@ public class SnakeBehaviour : MonoBehaviour
         }
 
         snakeHeadStartPosition = new Vector2Int((int)(gridSize.x / 2), (int)(gridSize.y / 2)); // Start at the midpoint.
+        segments = new List<Vector2Int>();
+        segments.Add(snakeHeadStartPosition);
         updateTilemapTile(snakeHeadStartPosition, segmentColours[0]);
+        spawnApple();
+    }
+
+    void Restart(DNA newDNA)
+    {
+        dna = newDNA;
+
+        // Revert Stats
+        direction = Vector2Int.right;
+        prevDirection = Vector2Int.right;
+        turnDirection = 0;
+        alive = true;
+        diedToCollision = false;
+        numMovesSinceLastApple = 0;
+        numberOfApplesConsumed = 0;
+        numOfMoves = 0;
+        averageMovesPerApple = 0;
+        numOfMovesWhenGreatestLengthReached = 0;
+
+        // Remove every tile except the head, which might have gone over a wall position on the previous game.
+        for (int i = 1; i < segments.Count; i++) 
+        {
+            grid[segments[i].x, segments[i].y] = TileType.Empty;
+            removeTilemapTile(segments[i]);
+        }
+        removeTilemapTile(segments[0]);
+        // Replace wall tile if the snake was over a wall position.
+        if (segments[0].x == 0 || segments[0].x == gridSize.x - 1 || segments[0].y == 0 || segments[0].y == gridSize.y - 1)
+        {
+            grid[segments[0].x, segments[0].y] = TileType.Wall;
+        }
+        segments[0] = snakeHeadStartPosition;
+        segments = new List<Vector2Int>();
+        segments.Add(snakeHeadStartPosition);
+        if (segmentColours.Count <= 0) { segmentColours.Add(GameManager.headColor); }
+        updateTilemapTile(segments[0], segmentColours[0]);
+
+        // Regenerate Apple
+        removeTilemapTile(applePosition);
         spawnApple();
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        segments = new List<Vector2Int>();
-        segments.Add(snakeHeadStartPosition);
+        
     }
 
     // Update is called once per frame
