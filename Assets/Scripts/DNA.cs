@@ -31,20 +31,31 @@ public class DNA
     {
         DNA child = new DNA(genes.Length);
 
-        /*
-        I used the same crossover logic as I did in the Week 7 Lab. Could change this.
-        */
-        
-        int parent1Length = UnityEngine.Random.Range(0, genes.Length);
-        int parent2Length = otherParent.genes.Length - parent1Length;
-        for (int i = 0; i < parent1Length; i++)
+        /// Uniform Crossover
+        // 50/50 for each gene which parent will be used.
+        for (int i = 0; i < genes.Length; i++)
         {
-            child.genes[i] = genes[i];
+            if (UnityEngine.Random.value > 0.5f)
+            {
+                child.genes[i] = otherParent.genes[i];
+            }
+            else
+            {
+                child.genes[i] = genes[i];
+            }
         }
-        for (int i = parent1Length; i < parent2Length; i++)
-        {
-            child.genes[i] = otherParent.genes[i];
-        }
+
+        /// Single Point Crossover
+        //int parent1Length = UnityEngine.Random.Range(0, genes.Length);
+        //int parent2Length = otherParent.genes.Length - parent1Length;
+        //for (int i = 0; i < parent1Length; i++)
+        //{
+        //    child.genes[i] = genes[i];
+        //}
+        //for (int i = parent1Length; i < parent2Length; i++)
+        //{
+        //    child.genes[i] = otherParent.genes[i];
+        //}
 
         return child;
     }

@@ -41,6 +41,7 @@ public class GameManager : MonoBehaviour
     public int numGenes = 10;
     public float MutationRate = 0.01f;
     public float SelectionPercentage = 0.5f; // Percentage of population sorted by fitness to use for the next generation.
+    public float elitistPopulationPercentage = 0.1f; // Percentage of population to fully preserve between generations.
     private int generation = 0;
     private int currentSnake = 0; // Run the games sequentially, this is how newly created snakes will get their corresponding DNA on initialization.
     private DNA bestPerformer = null;
@@ -181,28 +182,34 @@ public class GameManager : MonoBehaviour
 
     private void createNewGeneration()
     {
-        /// TODO ~ Crossover, mutation, etc
-
         DNA[] newPopulation = new DNA[populationSize];
-
-        for (int i = 0; i < populationSize; i++)
-        {
-            // Selection
-            DNA parent1 = chooseParent();
-            DNA parent2 = chooseParent();
-
-            // Crossover
-            DNA child = parent1.Crossover(parent2);
-
-            // Mutation
-            child.Mutate(MutationRate);
-
-            newPopulation[i] = child;
-        }
-        population = newPopulation;
 
         // Sort in descending order of fitness
         System.Array.Sort(population, (a, b) => b.fitness.CompareTo((a.fitness)));
+
+        for (int i = 0; i < populationSize; i++)
+        {
+            // Idea is that a percentage of the best populace won't be lost to random chance, but instead will be preserved and carried through generations until better are found.
+            if (i < (int)(populationSize * elitistPopulationPercentage))
+            {
+                newPopulation[i] = population[i];
+            }
+            else
+            {
+                // Selection
+                DNA parent1 = chooseParent();
+                DNA parent2 = chooseParent();
+
+                // Crossover
+                DNA child = parent1.Crossover(parent2);
+
+                // Mutation
+                child.Mutate(MutationRate);
+
+                newPopulation[i] = child;
+            }
+        }
+        population = newPopulation;
     }
 
     public void CreateSnake()
