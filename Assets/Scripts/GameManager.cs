@@ -46,7 +46,7 @@ public class GameManager : MonoBehaviour
     public float elitistPopulationPercentage = 0.1f; // Percentage of population to fully preserve between generations.
     private int generation = 0;
     private int currentSnake = 0; // Run the games sequentially, this is how newly created snakes will get their corresponding DNA on initialization.
-    private DNA bestPerformer = null;
+    private DNA bestDNA = null; // Highest Fitness DNA
     private int bestFitnessGeneration = 0;
     private bool simulationTerminated = false;
     private bool snakeCreated = false;
@@ -121,7 +121,7 @@ public class GameManager : MonoBehaviour
         {
             population[i] = new DNA(numGenes);
         }
-        bestPerformer = population[0];
+        bestDNA = population[0];
         CreateSnake();
     }
 
@@ -141,7 +141,7 @@ public class GameManager : MonoBehaviour
             genNumText.text = "Generation: " + generation;
             timeStepText.text = "TimeStep: " + fixedTimeStep;
             generationLimitText.text = "Generation Limit: " + generationLimit;
-            bestFitnessText.text = "Best Fitness: " + bestPerformer.fitness;
+            bestFitnessText.text = "Best Fitness: " + bestDNA.fitness;
             bestFitnessGenerationText.text = "Best Fitness Generation: " + bestFitnessGeneration;
             snake.CalculateFitness();
             fitnessText.text = "Fitness: " + snake.dna.fitness;
@@ -169,11 +169,11 @@ public class GameManager : MonoBehaviour
             {
                 // Determine if snake is the best candidate.
                 population[currentSnake].fitness = snake.CalculateFitness();
-                if (population[currentSnake].fitness > bestPerformer.fitness)
+                if (population[currentSnake].fitness > bestDNA.fitness)
                 {
                     // Store the dna (Once program is terminated, can then use the best DNA for the AI).
                     // Could optionally serialize it as well.
-                    bestPerformer = snake.dna;
+                    bestDNA = snake.dna.Clone();
                     bestFitnessGeneration = generation;
                 }
 
@@ -251,7 +251,7 @@ public class GameManager : MonoBehaviour
         if (simulationTerminated)
         {
             // Use the best performer
-            newSnakeBehaviour.Initialize(bestPerformer, this);
+            newSnakeBehaviour.Initialize(bestDNA.Clone(), this);
         }
         else
         {

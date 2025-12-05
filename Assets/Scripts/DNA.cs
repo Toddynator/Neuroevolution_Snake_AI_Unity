@@ -27,6 +27,14 @@ public class DNA
         }
     }
 
+    public DNA Clone()
+    {
+        DNA copy = new DNA(genes.Length);
+        copy.genes = (int[])genes.Clone();
+        copy.fitness = fitness;
+        return copy;
+    }
+
     public DNA Crossover (DNA otherParent)
     {
         DNA child = new DNA(genes.Length);
