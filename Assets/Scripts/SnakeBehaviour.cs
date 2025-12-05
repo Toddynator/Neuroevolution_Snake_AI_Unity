@@ -15,6 +15,7 @@ public class SnakeBehaviour : MonoBehaviour
     public Tilemap tilemap; // What it renders tiles to
     private Tile baseTile; // Can just colour this tile
     private TileType[,] grid; // X & Y, Represents every tile in the game of Snake.
+    private Vector2Int gridSize; // For convenience
     private Vector2Int applePosition;
     private Vector2Int snakeHeadStartPosition;
     private List<Vector2Int> segments;
@@ -56,22 +57,23 @@ public class SnakeBehaviour : MonoBehaviour
 
         /// SETUP THE WALLS 
 
-        grid = new TileType[(int)gameManager.SceneSize.x, (int)gameManager.SceneSize.y];
-        for (int x = 0; x < gameManager.SceneSize.x; x++)
+        gridSize = new Vector2Int((int)gameManager.SceneSize.x, (int)gameManager.SceneSize.y);
+        grid = new TileType[gridSize.x, gridSize.y];
+        for (int x = 0; x < gridSize.x; x++)
         {
-            for (int y = 0; y < gameManager.SceneSize.y; y++)
+            for (int y = 0; y < gridSize.y; y++)
             {
                 // Create walls at the edges of the arena.
-                if (x == 0 || x == gameManager.SceneSize.x - 1 || y == 0 || y == gameManager.SceneSize.y - 1)
+                if (x == 0 || x == gridSize.x - 1 || y == 0 || y == gridSize.y - 1)
                 {
                     grid[x, y] = TileType.Wall;
                 }
             }
         }
         // Setup tilemap ~ Might be able to optimize this by pre-creating in GameManager and duplicating it.
-        for (int x = 0; x < grid.GetLength(0); x++)
+        for (int x = 0; x < gridSize.x; x++)
         {
-            for (int y = 0; y < grid.GetLength(1); y++)
+            for (int y = 0; y < gridSize.y; y++)
             {
                 if (grid[x, y] == TileType.Wall)
                 {
@@ -84,7 +86,7 @@ public class SnakeBehaviour : MonoBehaviour
             }
         }
 
-        snakeHeadStartPosition = new Vector2Int((int)(grid.GetLength(0) / 2), (int)(grid.GetLength(1) / 2)); // Start at the midpoint.
+        snakeHeadStartPosition = new Vector2Int((int)(gridSize.x / 2), (int)(gridSize.y / 2)); // Start at the midpoint.
         updateTilemapTile(snakeHeadStartPosition, segmentColours[0]);
         spawnApple();
     }
@@ -154,7 +156,6 @@ public class SnakeBehaviour : MonoBehaviour
         }
         else if (grid[segments[0].x, segments[0].y] == TileType.Apple)
         {
-            Debug.Log("Apple Consumed");
             grow();
             spawnApple();
 
@@ -170,27 +171,38 @@ public class SnakeBehaviour : MonoBehaviour
 
         //// SNAKE SENSES ~ What it sees
 
-        //float rayLength = Mathf.Max(GameManager.SceneSize.x, GameManager.SceneSize.y);
-        //Vector2 position = this.transform.position;
-        //Debug.DrawRay(position, direction * rayLength, Color.blue); // Draws a line in Scene View (You can see it in the game if gizmo's are enabled).
-        //RaycastHit2D hit;
-        //hit = Physics2D.Linecast(position, position + (direction * rayLength), LayerMask.GetMask("Wall", "Snake")); // Pretty much guaranteed to hit something
-        //if (hit.collider != null)
-        //{
-        //    distanceToObstacleInFront = (int)hit.distance;
-        //}
-        //hit = Physics2D.Linecast(position, position + (direction * rayLength), LayerMask.GetMask("Food"));
-        //if (hit.collider != null)
-        //{
-        //    //distanceToApple = (int)hit.distance;
-        //    seeApple = true;
-        //}
-        //else { seeApple = false; }
-        //if (GameManager.GetApple() != null)
-        //{
-        //    Vector2 difference = GameManager.GetApple().transform.position - transform.position;
-        //    distanceToApple = difference.magnitude;
-        //}
+        Vector2 differenceAppleAndSnakeVector = applePosition - segments[0];
+        distanceToApple = differenceAppleAndSnakeVector.magnitude;
+
+        float rayLength = Mathf.Max(GameManager.SceneSize.x, GameManager.SceneSize.y);
+        Vector2 position = new Vector2(this.transform.position.x, this.transform.position.y) + segments[0];
+        Vector3 directionVector3 = new Vector3(direction.x, direction.y, 0.0f);
+        Debug.DrawRay(position+ new Vector2(0.5f,0.5f), directionVector3 * rayLength, Color.blue); // Draws a line in Scene View (You can see it in the game if gizmo's are enabled).
+
+        seeApple = false;
+        Vector2Int currentScanPosition = segments[0];
+        if (currentScanPosition.x >= gridSize.x - 1 || currentScanPosition.x <= 0 || currentScanPosition.y <= 0 || currentScanPosition.y >= gridSize.y - 1)
+        {
+            distanceToObstacleInFront = 0;
+        }
+        else
+        {
+            for (int i = 0; i < Mathf.Max(gridSize.x, gridSize.y); i++)
+            {
+                currentScanPosition += direction;
+                TileType scannedTile = grid[currentScanPosition.x, currentScanPosition.y];
+                if (scannedTile == TileType.Apple)
+                {
+                    seeApple = true;
+                }
+                else if (scannedTile != TileType.Empty)
+                {
+                    Vector2Int difference = currentScanPosition - segments[0];
+                    distanceToObstacleInFront = (int)difference.magnitude;
+                    break;
+                }
+            }
+        }
 
         //// TERMINATE EARLY ~ e.g. snake takes too long
 
