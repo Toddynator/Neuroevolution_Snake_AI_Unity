@@ -30,6 +30,8 @@ public class GameManager : MonoBehaviour
     public bool SnakeColourGradient = false; // Off by default for performance (If you need a TON of snake games running at the same time).
     public Color headColor = Color.green;
     public Color tailColor = new Color(0, 0.5f, 0, 1);
+    public bool fixedRNGSeed = true;
+    public int randomGenerationSeed = 42; 
 
     /// GENETIC ALGORITHMS
 

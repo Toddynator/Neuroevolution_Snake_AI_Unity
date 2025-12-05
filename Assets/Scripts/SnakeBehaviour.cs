@@ -247,13 +247,14 @@ public class SnakeBehaviour : MonoBehaviour
         /// TODO, add a way to use the same seed every time, should use apples consumed to ensure apples spawn in a different location each time as well.
         /// Also should improve this so that it keeps track of positions it has already tried.   
 
+        if (GameManager.fixedRNGSeed) { Random.InitState(GameManager.randomGenerationSeed + numberOfApplesConsumed); } // ensure consistent results.
         bool emptyPositionFound = false;
         while (!emptyPositionFound)
         {
             applePosition = Vector2Int.zero;
             // Account for walls on the edge tiles.
-            applePosition.x = UnityEngine.Random.Range(1, grid.GetLength(0) - 1);
-            applePosition.y = UnityEngine.Random.Range(1, grid.GetLength(1) - 1);
+            applePosition.x = UnityEngine.Random.Range(1, gridSize.x - 1);
+            applePosition.y = UnityEngine.Random.Range(1, gridSize.y - 1);
             // Check if its already occupied by the snake
             if (grid[applePosition.x, applePosition.y] == TileType.Empty)
             {
