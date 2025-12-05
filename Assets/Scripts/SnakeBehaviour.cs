@@ -2,6 +2,7 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
@@ -322,9 +323,11 @@ public class SnakeBehaviour : MonoBehaviour
         const float SCORE_PER_APPLE = 10.0f;
         const float SCORE_MOVES_MULTIPLIER = 2.0f;
         const float SCORE_DECAY_RATE = 0.01f; // Should improve this to be based on maximum number of moves possible in a scene.
+        float maxPossibleDistanceToApple = gridSize.magnitude;
 
-        score += numberOfApplesConsumed * SCORE_PER_APPLE;
-        score = score * Mathf.Exp(numOfMovesWhenGreatestLengthReached * -(SCORE_DECAY_RATE)) * SCORE_MOVES_MULTIPLIER;
+        score += numberOfApplesConsumed * SCORE_PER_APPLE; // Primarily reward based on number of apples gained
+        score += SCORE_PER_APPLE * (1.0f - distanceToApple / maxPossibleDistanceToApple); // Reward getting closer to the apple with each generation
+        score = score * Mathf.Exp(numOfMovesWhenGreatestLengthReached * -(SCORE_DECAY_RATE)) * SCORE_MOVES_MULTIPLIER; // Should reward / penalise for taking too many moves to get each apple.
 
         dna.fitness = score;
 

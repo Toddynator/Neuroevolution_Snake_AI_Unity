@@ -5,8 +5,10 @@ Should control the size of the scene.
 
 using Mono.Cecil;
 using System.Linq;
+using System.Reflection.Emit;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public enum TileType
 {
@@ -37,6 +39,7 @@ public class GameManager : MonoBehaviour
 
     public int populationSize = 10;
     public int generationLimit = 15; // When to stop simulating and display the best candidate.
+    public bool generationLimitEnabled = true;
     public int numGenes = 10;
     public float MutationRate = 0.01f;
     public float SelectionPercentage = 0.5f; // Percentage of population sorted by fitness to use for the next generation.
@@ -44,6 +47,7 @@ public class GameManager : MonoBehaviour
     private int generation = 0;
     private int currentSnake = 0; // Run the games sequentially, this is how newly created snakes will get their corresponding DNA on initialization.
     private DNA bestPerformer = null;
+    private int bestFitnessGeneration = 0;
     private bool simulationTerminated = false;
     private bool snakeCreated = false;
 
@@ -55,6 +59,13 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI genNumText;
     public TMP_InputField timeStepInput;
     public TextMeshProUGUI timeStepText;
+    public TextMeshProUGUI bestFitnessText;
+    public TextMeshProUGUI fitnessText;
+    public TextMeshProUGUI bestFitnessGenerationText;
+    public TextMeshProUGUI generationLimitText;
+    public TMP_InputField generationLimitInput;
+    public Toggle generationLimitToggle;
+    public Button pauseButton;
 
     /// GAMEOBJECTS
 
@@ -68,13 +79,21 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         Time.fixedDeltaTime = fixedTimeStep;
-        timeStepInput.onEndEdit.AddListener(delegate { SetTimeStep(timeStepInput.text); }); // This will call the Set function when input is finished
 
+        /// EDGE CASES
+        
+        // Ensure scene is of the minimum playable size.
         SceneSize.x = Mathf.Max(4.0f, SceneSize.x);
         SceneSize.y = Mathf.Max(4.0f, SceneSize.y);
         // Ensure scene size is even so that camera is always centred.
         if (SceneSize.x % 2 != 0) { SceneSize.x += 1; }
         if (SceneSize.y % 2 != 0) { SceneSize.y += 1; }
+
+        /// UI 
+
+        timeStepInput.onSubmit.AddListener(delegate { SetTimeStep(timeStepInput.text); }); // This will call the Set function when input is finished
+        generationLimitInput.onSubmit.AddListener(delegate { SetGenerationLimit(generationLimitInput.text); });
+        pauseButton.onClick.AddListener(delegate { simulationTerminated = !simulationTerminated; });
 
         /// RESIZE CAMERA TO FIT SCENE INTO VIEW
 
@@ -121,6 +140,17 @@ public class GameManager : MonoBehaviour
             popSizeText.text = "Population Size: " + populationSize;
             genNumText.text = "Generation: " + generation;
             timeStepText.text = "TimeStep: " + fixedTimeStep;
+            generationLimitText.text = "Generation Limit: " + generationLimit;
+            bestFitnessText.text = "Best Fitness: " + bestPerformer.fitness;
+            bestFitnessGenerationText.text = "Best Fitness Generation: " + bestFitnessGeneration;
+            snake.CalculateFitness();
+            fitnessText.text = "Fitness: " + snake.dna.fitness;
+            // Generation Limit Toggle
+            bool prevGenLimitState = generationLimitEnabled;
+            generationLimitEnabled = generationLimitToggle.isOn;
+            // Pause Button State
+            if(simulationTerminated) { pauseButton.GetComponentInChildren<TextMeshProUGUI>().text = "Resume Training"; }
+            else { pauseButton.GetComponentInChildren<TextMeshProUGUI>().text = "Pause Training"; }
         }
     }
 
@@ -144,6 +174,7 @@ public class GameManager : MonoBehaviour
                     // Store the dna (Once program is terminated, can then use the best DNA for the AI).
                     // Could optionally serialize it as well.
                     bestPerformer = snake.dna;
+                    bestFitnessGeneration = generation;
                 }
 
                 // Remove the previous Snake
@@ -154,7 +185,7 @@ public class GameManager : MonoBehaviour
                     // Next Generation
                     generation++;
 
-                    if (generation > generationLimit)
+                    if (generationLimitEnabled && generation > generationLimit)
                     {
                         simulationTerminated = true;
                     }
@@ -230,6 +261,16 @@ public class GameManager : MonoBehaviour
         snake = newSnakeBehaviour;
     }
 
+    private DNA chooseParent()
+    {
+        // Population should be sorted in descending order of fitness before calling this function.
+
+        // Chooses a random parent from the fittest candidates of the population.
+        int fittestPopulationLength = (int)(populationSize * SelectionPercentage);
+        int parentIndex = UnityEngine.Random.Range(0, fittestPopulationLength);
+        return population[parentIndex];
+    }
+
     public void SetTimeStep(string stepString) // Used by inputField UI to adjust timestep during runtime
     {
         float step;
@@ -240,14 +281,13 @@ public class GameManager : MonoBehaviour
             fixedTimeStep = step;
         }
     }
-
-    private DNA chooseParent()
+    public void SetGenerationLimit(string limitString)
     {
-        // Population should be sorted in descending order of fitness before calling this function.
-
-        // Chooses a random parent from the fittest candidates of the population.
-        int fittestPopulationLength = (int)(populationSize * SelectionPercentage);
-        int parentIndex = UnityEngine.Random.Range(0, fittestPopulationLength);
-        return population[parentIndex];
+        int limit;
+        // Ensure string is valid
+        if (int.TryParse(limitString, out limit))
+        {
+            generationLimit = limit;
+        }
     }
 }
