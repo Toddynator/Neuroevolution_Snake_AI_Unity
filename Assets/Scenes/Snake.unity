@@ -2098,16 +2098,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SnakeGamePrefab: {fileID: 7878243269492768780, guid: f2611e3b1a7af5349b47c50012b85348, type: 3}
   SceneSize: {x: 16, y: 8}
-  fixedTimeStep: 0
+  fixedTimeStep: 0.01
   GrowthPerApple: 5
   SnakeColourGradient: 1
   headColor: {r: 0, g: 1, b: 0, a: 1}
   tailColor: {r: 0, g: 0.5, b: 0, a: 1}
   fixedRNGSeed: 1
   randomGenerationSeed: 42
-  parallelExecution: 0
+  parallelExecution: 1
   populationSize: 100
-  generationLimit: 300
+  generationLimit: 1000
   generationLimitEnabled: 1
   numGenes: 1000
   MutationRate: 0.1
