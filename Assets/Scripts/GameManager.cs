@@ -38,6 +38,8 @@ public class GameManager : MonoBehaviour
     public bool fixedRNGSeed = true;
     public int randomGenerationSeed = 42;
 
+    private bool trainingStarted = false;
+
     /// GENETIC ALGORITHMS
 
     public bool parallelExecution = false; // Instead of running snake unity game objects which visually display the game, I run snake processes on multiple threads. Only show the final snake game.
@@ -123,6 +125,117 @@ public class GameManager : MonoBehaviour
         }
         bestDNA = population[0];
         CreateSnake();
+    }
+
+    private void OnGUI()
+    {
+        /// CREATE UI MENU
+
+        Rect menuRect = new Rect(
+            Screen.width * 0.0125f,
+            Screen.height * 0.025f,
+            Screen.width * 0.2f,
+            Screen.height * 0.95f
+        );
+
+        GUIStyle style = new GUIStyle();
+        // Create background texture
+        Texture2D texture = new Texture2D(1, 1);
+        texture.SetPixel(0, 0, new Color(0.1f, 0.1f, 0.1f, 0.25f));
+        texture.Apply();
+        style.normal.background = texture;
+        GUI.Box(menuRect, "Main Menu", style);
+
+        /// CREATE UI WIDGETS
+
+        Rect widgetRect = new Rect(menuRect.x + menuRect.size.x * 0.05f, menuRect.y + menuRect.size.x * 0.05f, menuRect.size.x * 0.9f, menuRect.size.y * 0.05f);
+        float widgetVerticalSpacing = menuRect.size.y * 0.1f; // Should increment widgetRect y by this after each widget to space the UI out.
+
+        GUIStyle header = new GUIStyle(GUI.skin.label);
+        header.fontSize = 16;
+        header.fontStyle = FontStyle.Bold;
+
+        const float TEXT_VERTICAL_SPACING_MULTIPLIER = 0.4f;
+
+        if (!trainingStarted)
+        {
+            if (GUI.Button(widgetRect, "Start Training"))
+            {
+
+            }
+        }
+        else
+        {
+            if (simulationTerminated)
+            {
+                if (GUI.Button(widgetRect, "Resume Training"))
+                {
+
+                }
+            }
+            else
+            {
+                if (GUI.Button(widgetRect, "Pause Training"))
+                {
+
+                }
+            }
+        }
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.5f;
+
+        GUI.Label(widgetRect, "Game Size: " + SceneSize);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "Growth per Apple: " + GrowthPerApple);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "Timestep: " + fixedTimeStep);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "RNG Seed: " + randomGenerationSeed);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+        GUI.Label(widgetRect, "Genetic Algorithm", header);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+        GUI.Label(widgetRect, "Population Size: " + populationSize);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "Number of Genes: " + numGenes);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "Mutation Rate: " + MutationRate);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "Selection Percentage: " + SelectionPercentage);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "Elite Selection Percentage: " + elitistPopulationPercentage);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "Generation Limit: " + generationLimit);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+        GUI.Label(widgetRect, "Training Progress", header);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+        GUI.Label(widgetRect, "Best Fitness: " + bestDNA.fitness);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "Best Fitness Generation: " + bestFitnessGeneration);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "Generation: " + generation);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.Label(widgetRect, "Snake: " + currentSnake);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+        if (simulationTerminated)
+        {
+            GUI.Label(widgetRect, "Snake Statistics", header);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+            GUI.Label(widgetRect, "Fitness: " + displayedSnakeGame.GetSnakeGame().dna.fitness);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUI.Label(widgetRect, "Apples Eaten: " + displayedSnakeGame.GetSnakeGame().numberOfApplesConsumed);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUI.Label(widgetRect, "DistanceToObstacle: " + displayedSnakeGame.GetSnakeGame().distanceToObstacleInFront);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUI.Label(widgetRect, "Sees Apple: " + displayedSnakeGame.GetSnakeGame().seeApple);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUI.Label(widgetRect, "DistanceToApple: " + displayedSnakeGame.GetSnakeGame().distanceToApple);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        }
     }
 
     // Update is called once per frame
