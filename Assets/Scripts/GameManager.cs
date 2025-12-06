@@ -1,16 +1,10 @@
-/*
-Should Spawn new Apples each time one has been consumed
-Should control the size of the scene.
- */
-
-using Mono.Cecil;
 using System.Linq;
 using System.Reflection.Emit;
 using System.Threading;
 using System.Threading.Tasks;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEditor;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -39,9 +33,7 @@ public class GameManager : MonoBehaviour
     public bool fixedRNGSeed = true;
     public int randomGenerationSeed = 42;
 
-    private bool trainingStarted = false;
-
-    /// GENETIC ALGORITHMS
+    /// GENETIC ALGORITHM SETTINGS
 
     public bool parallelExecution = false; // Instead of running snake unity game objects which visually display the game, I run snake processes on multiple threads. Only show the final snake game.
     public int populationSize = 10;
@@ -51,32 +43,24 @@ public class GameManager : MonoBehaviour
     public float MutationRate = 0.01f;
     public float SelectionPercentage = 0.5f; // Percentage of population sorted by fitness to use for the next generation.
     public float elitistPopulationPercentage = 0.1f; // Percentage of population to fully preserve between generations.
+
+    /// GENETIC ALGORITHM
+
     private int generation = 0;
     private int currentSnake = 0; // Run the games sequentially, this is how newly created snakes will get their corresponding DNA on initialization.
     private DNA bestDNA = null; // Highest Fitness DNA
     private int bestFitnessGeneration = 0;
     private bool simulationTerminated = false;
-
-    public TextMeshProUGUI distanceToObstacleText;
-    public TextMeshProUGUI distanceToAppleText;
-    public TextMeshProUGUI seeAppleText;
-    public TextMeshProUGUI snakeNumText;
-    public TextMeshProUGUI popSizeText;
-    public TextMeshProUGUI genNumText;
-    public TMP_InputField timeStepInput;
-    public TextMeshProUGUI timeStepText;
-    public TextMeshProUGUI bestFitnessText;
-    public TextMeshProUGUI fitnessText;
-    public TextMeshProUGUI bestFitnessGenerationText;
-    public TextMeshProUGUI generationLimitText;
-    public TMP_InputField generationLimitInput;
-    public Toggle generationLimitToggle;
-    public Button pauseButton;
-
-    /// GAMEOBJECTS
-
+    private bool trainingStarted = false;
     private DNA[] population;
     private TilemapSnakeGame displayedSnakeGame;
+
+
+
+    ///////////////
+    ///// FUNCTIONS
+
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -86,12 +70,6 @@ public class GameManager : MonoBehaviour
         /// EDGE CASES
 
         validateSceneSize();
-
-        /// UI 
-
-        timeStepInput.onSubmit.AddListener(delegate { SetTimeStep(timeStepInput.text); }); // This will call the Set function when input is finished
-        generationLimitInput.onSubmit.AddListener(delegate { SetGenerationLimit(generationLimitInput.text); });
-        pauseButton.onClick.AddListener(delegate { simulationTerminated = !simulationTerminated; });
 
         /// RESIZE CAMERA TO FIT SCENE INTO VIEW
 
@@ -113,7 +91,6 @@ public class GameManager : MonoBehaviour
         }
         bestDNA = population[0];
     }
-
     private void validateSceneSize()
     {
         // Ensure scene is of the minimum playable size.
@@ -174,6 +151,12 @@ public class GameManager : MonoBehaviour
 
         const float TEXT_VERTICAL_SPACING_MULTIPLIER = 0.4f;
 
+        Rect quitButtonRect = new Rect(Screen.width - widgetRect.size.x * 1.1f, 0.0f + widgetRect.size.y * 1.1f, widgetRect.size.x, widgetRect.size.y);
+        if (GUI.Button(quitButtonRect, "Quit"))
+        {
+            Application.Quit();
+        }
+
         if (!trainingStarted)
         {
             if (GUI.Button(widgetRect, "Start Training"))
@@ -185,12 +168,12 @@ public class GameManager : MonoBehaviour
         {
             if (simulationTerminated)
             {               
-                EditorGUI.BeginDisabledGroup(shouldSimulationTerminate());
+                GUI.enabled = !shouldSimulationTerminate();
                 if (GUI.Button(widgetRect, "Resume Training"))
                 {
                     simulationTerminated = false;
                 }
-                EditorGUI.EndDisabledGroup();
+                GUI.enabled = true;
             }
             else
             {
@@ -201,7 +184,7 @@ public class GameManager : MonoBehaviour
             }
         }
         widgetRect.y += widgetVerticalSpacing * 0.6f;
-        EditorGUI.BeginDisabledGroup(!trainingStarted);
+        GUI.enabled = (trainingStarted);
         if (GUI.Button(widgetRect, "Restart Training"))
         {
             trainingStarted = false;
@@ -211,7 +194,7 @@ public class GameManager : MonoBehaviour
             currentSnake = 0;
             bestFitnessGeneration = 0;
         }
-        EditorGUI.EndDisabledGroup();
+        GUI.enabled = true;
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.5f;
 
         GUI.Label(widgetRect, "Game Size: " + SceneSize);
@@ -266,37 +249,6 @@ public class GameManager : MonoBehaviour
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUI.Label(widgetRect, "DistanceToApple: " + displayedSnakeGame.GetSnakeGame().distanceToApple);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
-        }
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        /// UPDATE UI
-
-        // Generation Limit Toggle
-        bool prevGenLimitState = generationLimitEnabled;
-        generationLimitEnabled = generationLimitToggle.isOn;
-        // Pause Button State
-        if (simulationTerminated) { pauseButton.GetComponentInChildren<TextMeshProUGUI>().text = "Resume Training"; }
-        else { pauseButton.GetComponentInChildren<TextMeshProUGUI>().text = "Pause Training"; }
-
-        snakeNumText.text = "Snake Number: " + currentSnake;
-        popSizeText.text = "Population Size: " + populationSize;
-        genNumText.text = "Generation: " + generation;
-        timeStepText.text = "TimeStep: " + fixedTimeStep;
-        generationLimitText.text = "Generation Limit: " + generationLimit;
-        bestFitnessText.text = "Best Fitness: " + bestDNA.fitness;
-        bestFitnessGenerationText.text = "Best Fitness Generation: " + bestFitnessGeneration;
-
-        // Snake Specific UI
-        if (simulationTerminated)
-        {
-            distanceToObstacleText.text = "Distance to Obstacle: " + displayedSnakeGame.GetSnakeGame().distanceToObstacleInFront;
-            distanceToAppleText.text = "Distance to Apple: " + displayedSnakeGame.GetSnakeGame().distanceToApple;
-            seeAppleText.text = "Sees Apple: " + displayedSnakeGame.GetSnakeGame().seeApple;
-            displayedSnakeGame.GetSnakeGame().CalculateFitness();
-            fitnessText.text = "Fitness: " + displayedSnakeGame.GetSnakeGame().dna.fitness;          
         }
     }
 
@@ -471,25 +423,5 @@ public class GameManager : MonoBehaviour
         int fittestPopulationLength = (int)(populationSize * SelectionPercentage);
         int parentIndex = UnityEngine.Random.Range(0, fittestPopulationLength);
         return population[parentIndex];
-    }
-
-    public void SetTimeStep(string stepString) // Used by inputField UI to adjust timestep during runtime
-    {
-        float step;
-        // Ensure string is valid, if so, set the new timestep.
-        if (float.TryParse(stepString, out step))
-        {
-            Time.fixedDeltaTime = step;
-            fixedTimeStep = step;
-        }
-    }
-    public void SetGenerationLimit(string limitString)
-    {
-        int limit;
-        // Ensure string is valid
-        if (int.TryParse(limitString, out limit))
-        {
-            generationLimit = limit;
-        }
     }
 }

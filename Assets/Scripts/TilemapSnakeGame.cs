@@ -1,9 +1,7 @@
 using System.Collections.Generic;
-using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using UnityEngine.UIElements;
-using static UnityEngine.Rendering.HableCurve;
 
 /*
 Encapsulates logic for updating a tilemap on a GameObject based on a Snake Game.
