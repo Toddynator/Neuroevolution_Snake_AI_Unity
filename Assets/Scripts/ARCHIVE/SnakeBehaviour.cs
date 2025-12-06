@@ -7,6 +7,10 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
 
+/*
+ * This script is from before I made a non tilemap version.
+ */
+
 public class SnakeBehaviour : MonoBehaviour
 {
     private GameManager GameManager; // For any game settings that the snake may need to check. Should probably remove this and pass in variables on Init!

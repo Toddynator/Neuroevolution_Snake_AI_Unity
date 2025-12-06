@@ -12,16 +12,11 @@ public class SnakeGame
     private Vector2Int applePosition;
     private Vector2Int snakeHeadStartPosition;
     private List<Vector2Int> segments;
-    private List<Color> segmentColours = new List<Color>(); // Will remain a size of 1 unless gradient is enabled in the Game Manager.
     public DNA dna; // How the Snake chooses its actions.
-    public Color AppleColor = new Color(1.0f, 0.0f, 0.0f);
-    public Color WallColor = new Color(1.0f, 1.0f, 1.0f);
+
     private System.Random random;
     private int randomGenerationSeed;
     private bool useFixedRNGSeed = false;
-    private bool useSnakeColourGradient = false;
-    private Color headColor;
-    private Color tailColor;
     private int growthPerApple = 1;
 
     /// MOVEMENT
@@ -48,11 +43,7 @@ public class SnakeGame
         dna = newDNA;
         randomGenerationSeed = gameManager.randomGenerationSeed;
         useFixedRNGSeed = gameManager.fixedRNGSeed;
-        useSnakeColourGradient = gameManager.SnakeColourGradient;
-        headColor = gameManager.headColor;
-        tailColor = gameManager.tailColor;
         growthPerApple = gameManager.GrowthPerApple;
-        segmentColours.Add(headColor);
         if (useFixedRNGSeed)
         {
             random = new System.Random(randomGenerationSeed);
@@ -122,7 +113,6 @@ public class SnakeGame
         segments[0] = snakeHeadStartPosition;
         segments = new List<Vector2Int>();
         segments.Add(snakeHeadStartPosition);
-        if (segmentColours.Count <= 0) { segmentColours.Add(headColor); }
 
         // Regenerate Apple
         spawnApple();
@@ -222,19 +212,6 @@ public class SnakeGame
             segments.Add(segment);
         }
 
-        /// UPDATE COLOUR GRADIENT (If enabled)
-
-        if (useSnakeColourGradient)
-        {
-            for (int i = 0; i < segments.Count; i++)
-            {
-                // Gradient from head to tail
-                Color color = Color.Lerp(headColor, tailColor, (float)i / (segments.Count - 1));
-                if (i > segmentColours.Count - 1) { segmentColours.Add(color); }
-                else { segmentColours[i] = color; }
-            }
-        }
-
         // EDGE CASE: Snake has outgrown the level.
         if (segments.Count >= (grid.GetLength(0) - 1) * (grid.GetLength(1) - 1)) { gameOver(); return; }
     }
@@ -329,4 +306,10 @@ public class SnakeGame
 
         return score;
     }
+
+    public ref TileType[,] GetGrid() { return ref grid; }
+    public ref List<Vector2Int> GetSegments() { return ref segments; }
+    public Vector2Int GetApplePosition() { return applePosition; }
+    public Vector2Int GetGridSize() { return gridSize; }
+    public Vector2Int GetDirection() { return direction; }
 }

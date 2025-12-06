@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2119533444133270915}
   - component: {fileID: 5704646068051389014}
-  - component: {fileID: 1903898183099550764}
+  - component: {fileID: 5864334029747988274}
   m_Layer: 0
   m_Name: SnakeGame
   m_TagString: Untagged
@@ -46,7 +46,7 @@ Grid:
   m_CellGap: {x: 0, y: 0, z: 0}
   m_CellLayout: 0
   m_CellSwizzle: 0
---- !u!114 &1903898183099550764
+--- !u!114 &5864334029747988274
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -55,21 +55,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 7878243269492768780}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3b281c7d91c22cc4ca78e6cd30a0217a, type: 3}
+  m_Script: {fileID: 11500000, guid: 240c43618b4b3954198086097804f94c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tilemap: {fileID: 5134107590068229449}
   AppleColor: {r: 1, g: 0, b: 0, a: 1}
   WallColor: {r: 1, g: 1, b: 1, a: 1}
-  SnakeColor: {r: 0, g: 1, b: 0, a: 1}
-  distanceToObstacleInFront: 0
-  distanceToApple: 0
-  seeApple: 0
-  alive: 1
-  numberOfApplesConsumed: 0
-  numOfMoves: 0
-  averageMovesPerApple: 0
-  numOfMovesWhenGreatestLengthReached: 0
+  tilemap: {fileID: 5134107590068229449}
 --- !u!1 &8417756533795696289
 GameObject:
   m_ObjectHideFlags: 0

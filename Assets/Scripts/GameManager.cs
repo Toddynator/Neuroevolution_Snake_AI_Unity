@@ -71,8 +71,8 @@ public class GameManager : MonoBehaviour
     /// GAMEOBJECTS
 
     private DNA[] population;
-    private SnakeBehaviour snake;
-    private SnakeGame snakeProcess;
+    private TilemapSnakeGame displayedSnakeGame;
+    private SnakeGame snakeGameProcess;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -122,8 +122,8 @@ public class GameManager : MonoBehaviour
         }
         bestDNA = population[0];
         CreateSnake();
-        snakeProcess = new SnakeGame();
-        snakeProcess.Initialize(population[0], this);
+        snakeGameProcess = new SnakeGame();
+        snakeGameProcess.Initialize(population[0], this);
     }
 
     // Update is called once per frame
@@ -149,19 +149,19 @@ public class GameManager : MonoBehaviour
         // Snake Specific UI
         if (simulationTerminated || !parallelExecution)
         {
-            distanceToObstacleText.text = "Distance to Obstacle: " + snake.distanceToObstacleInFront;
-            distanceToAppleText.text = "Distance to Apple: " + snake.distanceToApple;
-            seeAppleText.text = "Sees Apple: " + snake.seeApple;
-            snake.CalculateFitness();
-            fitnessText.text = "Fitness: " + snake.dna.fitness;          
+            distanceToObstacleText.text = "Distance to Obstacle: " + displayedSnakeGame.GetSnakeGame().distanceToObstacleInFront;
+            distanceToAppleText.text = "Distance to Apple: " + displayedSnakeGame.GetSnakeGame().distanceToApple;
+            seeAppleText.text = "Sees Apple: " + displayedSnakeGame.GetSnakeGame().seeApple;
+            displayedSnakeGame.GetSnakeGame().CalculateFitness();
+            fitnessText.text = "Fitness: " + displayedSnakeGame.GetSnakeGame().dna.fitness;          
         }
         else
         {
-            distanceToObstacleText.text = "Distance to Obstacle: " + snakeProcess.distanceToObstacleInFront;
-            distanceToAppleText.text = "Distance to Apple: " + snakeProcess.distanceToApple;
-            seeAppleText.text = "Sees Apple: " + snakeProcess.seeApple;
-            snakeProcess.CalculateFitness();
-            fitnessText.text = "Fitness: " + snakeProcess.dna.fitness;
+            distanceToObstacleText.text = "Distance to Obstacle: " + snakeGameProcess.distanceToObstacleInFront;
+            distanceToAppleText.text = "Distance to Apple: " + snakeGameProcess.distanceToApple;
+            seeAppleText.text = "Sees Apple: " + snakeGameProcess.seeApple;
+            snakeGameProcess.CalculateFitness();
+            fitnessText.text = "Fitness: " + snakeGameProcess.dna.fitness;
         }
     }
 
@@ -189,23 +189,23 @@ public class GameManager : MonoBehaviour
         Once the simulation is terminated, it will then display a single game with the best fitness DNA.
          */
 
-        snakeProcess.Update();
+        snakeGameProcess.Update();
         if (simulationTerminated)
         {
             // Run the best fitness DNA repeatedly.
-            if (snake.alive == false) { snake.Restart(bestDNA.Clone()); }
+            if (displayedSnakeGame.GetSnakeGame().alive == false) { displayedSnakeGame.Restart(bestDNA.Clone()); }
         }
         else
         {
-            if (snakeProcess.alive == false)
+            if (snakeGameProcess.alive == false)
             {
                 // Determine if snake is the best candidate.
-                population[currentSnake].fitness = snakeProcess.CalculateFitness();
+                population[currentSnake].fitness = snakeGameProcess.CalculateFitness();
                 if (population[currentSnake].fitness > bestDNA.fitness)
                 {
                     // Store the dna (Once program is terminated, can then use the best DNA for the AI).
                     // Could optionally serialize it as well.
-                    bestDNA = snakeProcess.dna.Clone();
+                    bestDNA = snakeGameProcess.dna.Clone();
                     bestFitnessGeneration = generation;
                 }
 
@@ -228,7 +228,7 @@ public class GameManager : MonoBehaviour
                     currentSnake = 0;
                 }
                 // Update snake DNA
-                snakeProcess.Restart(population[currentSnake]);
+                snakeGameProcess.Restart(population[currentSnake]);
             }
         }
     }
@@ -239,17 +239,17 @@ public class GameManager : MonoBehaviour
         it will then run and display a snake game with the best fitness DNA.
          */
 
-        if (snake.alive == false)
+        if (displayedSnakeGame.GetSnakeGame().alive == false)
         {
             if (simulationTerminated == false)
             {
                 // Determine if snake is the best candidate.
-                population[currentSnake].fitness = snake.CalculateFitness();
+                population[currentSnake].fitness = displayedSnakeGame.GetSnakeGame().CalculateFitness();
                 if (population[currentSnake].fitness > bestDNA.fitness)
                 {
                     // Store the dna (Once program is terminated, can then use the best DNA for the AI).
                     // Could optionally serialize it as well.
-                    bestDNA = snake.dna.Clone();
+                    bestDNA = displayedSnakeGame.GetSnakeGame().dna.Clone();
                     bestFitnessGeneration = generation;
                 }
 
@@ -272,12 +272,12 @@ public class GameManager : MonoBehaviour
                     currentSnake = 0;
                 }
                 // Update snake DNA
-                snake.Restart(population[currentSnake]);
+                displayedSnakeGame.Restart(population[currentSnake]);
             }
             else
             {
                 // Recreate the best snake over and over after simulation is terminated.
-                snake.Restart(bestDNA.Clone());
+                displayedSnakeGame.Restart(bestDNA.Clone());
             }
         }
     }
@@ -317,13 +317,13 @@ public class GameManager : MonoBehaviour
     // Purely for initialising a new gameObject, ideally this should only be called once and then the game should be restarted once finished.
     public void CreateSnake()
     {
-        if (snake != null) { Destroy(snake.gameObject); }
+        if (displayedSnakeGame != null) { Destroy(displayedSnakeGame.gameObject); }
         GameObject newSnake = Instantiate(SnakeGamePrefab);
         newSnake.transform.position = new Vector3(0.0f - (SceneSize.x/2), 0.0f - (SceneSize.y/2), 0.0f); // Centre the game on the screen
-        SnakeBehaviour newSnakeBehaviour = newSnake.GetComponent<SnakeBehaviour>();
-        if (simulationTerminated) { newSnakeBehaviour.Initialize(bestDNA.Clone(), this); }
-        else { newSnakeBehaviour.Initialize(population[currentSnake], this); }
-        snake = newSnakeBehaviour;
+        TilemapSnakeGame newSnakeGame = newSnake.GetComponent<TilemapSnakeGame>();
+        if (simulationTerminated) { newSnakeGame.Initialize(bestDNA.Clone(), this); }
+        else { newSnakeGame.Initialize(population[currentSnake], this); }
+        displayedSnakeGame = newSnakeGame;
     }
 
     private DNA chooseParent()
