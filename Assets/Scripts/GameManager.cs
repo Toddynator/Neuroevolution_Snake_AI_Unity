@@ -7,6 +7,7 @@ using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 public enum TileType
 {
@@ -55,6 +56,12 @@ public class GameManager : MonoBehaviour
     private DNA[] population;
     private TilemapSnakeGame displayedSnakeGame;
 
+    /// UI
+
+    private string inputPop = "";
+    private string inputGeneNum = "";
+    private string inputGenLimit = "";
+    private string inputTimeStep = "0.01";
 
 
     ///////////////
@@ -144,6 +151,8 @@ public class GameManager : MonoBehaviour
 
         Rect widgetRect = new Rect(menuRect.x + menuRect.size.x * 0.05f, menuRect.y + menuRect.size.x * 0.05f, menuRect.size.x * 0.9f, menuRect.size.x * 0.11f);
         float widgetVerticalSpacing = menuRect.size.x * 0.235f; // Should increment widgetRect y by this after each widget to space the UI out.
+        int inputInt;
+        float inputFloat;
 
         GUIStyle header = new GUIStyle(GUI.skin.label);
         header.fontSize = 16;
@@ -162,6 +171,7 @@ public class GameManager : MonoBehaviour
             if (GUI.Button(widgetRect, "Start Training"))
             {
                 trainingStarted = true;
+                createInitialPopulation();
             }
         }
         else
@@ -189,7 +199,6 @@ public class GameManager : MonoBehaviour
         {
             trainingStarted = false;
             simulationTerminated = false;
-            createInitialPopulation();
             generation = 0;
             currentSnake = 0;
             bestFitnessGeneration = 0;
@@ -197,40 +206,99 @@ public class GameManager : MonoBehaviour
         GUI.enabled = true;
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.3f;
 
+        /// SNAKE GAME SETTINGS
+
         GUI.Label(widgetRect, "Game Size: " + SceneSize);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
         GUI.Label(widgetRect, "Growth per Apple: " + GrowthPerApple);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
         GUI.Label(widgetRect, "Timestep: " + fixedTimeStep);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUILayout.BeginArea(widgetRect);
+        inputTimeStep = GUILayout.TextField(inputTimeStep);
+        if (float.TryParse(inputTimeStep, out inputFloat))
+        {
+            Time.fixedDeltaTime = inputFloat;
+            fixedTimeStep = inputFloat;
+        }
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUILayout.EndArea();
+
         GUI.Label(widgetRect, "RNG Seed: " + randomGenerationSeed);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.1f;
+
+        /// GENETIC ALGORITHM SETTINGS
 
         GUI.Label(widgetRect, "Genetic Algorithm", header);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
         GUI.Label(widgetRect, "Population Size: " + populationSize);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+        GUI.enabled = !trainingStarted; // DISABLE BEGIN
+        GUILayout.BeginArea(widgetRect);
+        inputPop = GUILayout.TextField(inputPop);
+        if (int.TryParse(inputPop, out inputInt)) 
+        { 
+            populationSize = inputInt;           
+        }
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUILayout.EndArea();
+        GUI.enabled = true; // DISABLE END
+
         GUI.Label(widgetRect, "Number of Genes: " + numGenes);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.enabled = !trainingStarted; // DISABLE BEGIN
+        GUILayout.BeginArea(widgetRect);
+        inputGeneNum = GUILayout.TextField(inputGeneNum);
+        if (int.TryParse(inputGeneNum, out inputInt))
+        {
+            numGenes = inputInt;
+        }
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUILayout.EndArea();
+        GUI.enabled = true; // DISABLE END
+
         GUI.Label(widgetRect, "Mutation Rate: " + MutationRate);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
         GUI.Label(widgetRect, "Selection Percentage: " + SelectionPercentage);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
         GUI.Label(widgetRect, "Elite Selection Percentage: " + elitistPopulationPercentage);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
         GUI.Label(widgetRect, "Generation Limit: " + generationLimit);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUILayout.BeginArea(widgetRect);
+        generationLimitEnabled = GUILayout.Toggle(generationLimitEnabled, "Generation Limit");
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUILayout.EndArea();
+        GUILayout.BeginArea(widgetRect);
+        inputGenLimit = GUILayout.TextField(inputGenLimit);
+        if (int.TryParse(inputGenLimit, out inputInt))
+        {
+            generationLimit = inputInt;
+        }
+        GUILayout.EndArea();
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.1f;
+
+        /// TRAINING STATISTICS
 
         GUI.Label(widgetRect, "Training Progress", header);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
         GUI.Label(widgetRect, "Best Fitness: " + bestDNA.fitness);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
         GUI.Label(widgetRect, "Best Fitness Generation: " + bestFitnessGeneration);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
         GUI.Label(widgetRect, "Generation: " + generation);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
         GUI.Label(widgetRect, "Snake: " + currentSnake);
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.1f;
 
@@ -241,12 +309,16 @@ public class GameManager : MonoBehaviour
 
             GUI.Label(widgetRect, "Fitness: " + displayedSnakeGame.GetSnakeGame().dna.fitness);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
             GUI.Label(widgetRect, "Apples Eaten: " + displayedSnakeGame.GetSnakeGame().numberOfApplesConsumed);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
             GUI.Label(widgetRect, "DistanceToObstacle: " + displayedSnakeGame.GetSnakeGame().distanceToObstacleInFront);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
             GUI.Label(widgetRect, "Sees Apple: " + displayedSnakeGame.GetSnakeGame().seeApple);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
             GUI.Label(widgetRect, "DistanceToApple: " + displayedSnakeGame.GetSnakeGame().distanceToApple);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
         }
