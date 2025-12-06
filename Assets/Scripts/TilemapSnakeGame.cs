@@ -96,7 +96,7 @@ public class TilemapSnakeGame : MonoBehaviour
         updateTilemapTile(snakeGame.GetApplePosition(), AppleColor);
     }
 
-    public void FixedUpdate()
+    public void UpdateSnake()
     {
         /// UPDATE GAME
 
@@ -114,7 +114,7 @@ public class TilemapSnakeGame : MonoBehaviour
         }
 
         /// Snake
-         
+
         // If it has grown
         if (previousSnakeLength < segments.Count - 1)
         {

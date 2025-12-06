@@ -6,12 +6,13 @@ Should control the size of the scene.
 using Mono.Cecil;
 using System.Linq;
 using System.Reflection.Emit;
+using System.Threading;
+using System.Threading.Tasks;
 using TMPro;
+using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Threading;
-using System.Threading.Tasks;
 
 public enum TileType
 {
@@ -83,13 +84,8 @@ public class GameManager : MonoBehaviour
         Time.fixedDeltaTime = fixedTimeStep;
 
         /// EDGE CASES
-        
-        // Ensure scene is of the minimum playable size.
-        SceneSize.x = Mathf.Max(4.0f, SceneSize.x);
-        SceneSize.y = Mathf.Max(4.0f, SceneSize.y);
-        // Ensure scene size is even so that camera is always centred.
-        if (SceneSize.x % 2 != 0) { SceneSize.x += 1; }
-        if (SceneSize.y % 2 != 0) { SceneSize.y += 1; }
+
+        validateSceneSize();
 
         /// UI 
 
@@ -98,6 +94,38 @@ public class GameManager : MonoBehaviour
         pauseButton.onClick.AddListener(delegate { simulationTerminated = !simulationTerminated; });
 
         /// RESIZE CAMERA TO FIT SCENE INTO VIEW
+
+        updateCamera();
+
+        /// PREPARE THE SNAKES
+
+        createInitialPopulation();
+        createSnake();
+    }
+
+    private void createInitialPopulation()
+    {
+        populationSize = Mathf.Max(populationSize, 1); // EDGE CASE: Ensure population size is never 0.
+        population = new DNA[populationSize];
+        for (int i = 0; i < populationSize; i++)
+        {
+            population[i] = new DNA(numGenes);
+        }
+        bestDNA = population[0];
+    }
+
+    private void validateSceneSize()
+    {
+        // Ensure scene is of the minimum playable size.
+        SceneSize.x = Mathf.Max(4.0f, SceneSize.x);
+        SceneSize.y = Mathf.Max(4.0f, SceneSize.y);
+        // Ensure scene size is even so that camera is always centred.
+        if (SceneSize.x % 2 != 0) { SceneSize.x += 1; }
+        if (SceneSize.y % 2 != 0) { SceneSize.y += 1; }
+    }
+    private void updateCamera()
+    {
+        // Will scale the camera based on scene size so that the entire level is in view.
 
         Camera camera = Camera.main;
         Vector2 cameraSizeIncrement = new Vector2(baseCameraSize / baseSceneSize.x, baseCameraSize / baseSceneSize.y);
@@ -114,17 +142,6 @@ public class GameManager : MonoBehaviour
         {
             camera.orthographicSize = baseCameraSize + (cameraSizeIncrement.y * sizeDifference.y);
         }
-
-        /// PREPARE THE SNAKES
-
-        populationSize = Mathf.Max(populationSize, 1); // EDGE CASE: Ensure population size is never 0.
-        population = new DNA[populationSize];
-        for (int i = 0; i < populationSize; i++)
-        {
-            population[i] = new DNA(numGenes);
-        }
-        bestDNA = population[0];
-        CreateSnake();
     }
 
     private void OnGUI()
@@ -161,26 +178,40 @@ public class GameManager : MonoBehaviour
         {
             if (GUI.Button(widgetRect, "Start Training"))
             {
-
+                trainingStarted = true;
             }
         }
         else
         {
             if (simulationTerminated)
-            {
+            {               
+                EditorGUI.BeginDisabledGroup(shouldSimulationTerminate());
                 if (GUI.Button(widgetRect, "Resume Training"))
                 {
-
+                    simulationTerminated = false;
                 }
+                EditorGUI.EndDisabledGroup();
             }
             else
             {
                 if (GUI.Button(widgetRect, "Pause Training"))
                 {
-
+                    simulationTerminated = true;
                 }
             }
         }
+        widgetRect.y += widgetVerticalSpacing * 0.6f;
+        EditorGUI.BeginDisabledGroup(!trainingStarted);
+        if (GUI.Button(widgetRect, "Restart Training"))
+        {
+            trainingStarted = false;
+            simulationTerminated = false;
+            createInitialPopulation();
+            generation = 0;
+            currentSnake = 0;
+            bestFitnessGeneration = 0;
+        }
+        EditorGUI.EndDisabledGroup();
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.5f;
 
         GUI.Label(widgetRect, "Game Size: " + SceneSize);
@@ -272,13 +303,16 @@ public class GameManager : MonoBehaviour
     // This is ideal for running the snake game when visually displaying as I can control the timestep.
     public void FixedUpdate()
     {
-        if (parallelExecution)
-        {         
-            parallelSnakeGameUpdate();
-        }
-        else
+        if (trainingStarted)
         {
-            sequentialSnakeGameUpdate();
+            if (parallelExecution)
+            {
+                parallelSnakeGameUpdate();
+            }
+            else
+            {
+                sequentialSnakeGameUpdate();
+            }
         }
     }
 
@@ -293,11 +327,13 @@ public class GameManager : MonoBehaviour
         {
             // Run the best fitness DNA repeatedly.
             if (displayedSnakeGame.GetSnakeGame().alive == false) { displayedSnakeGame.Restart(bestDNA.Clone()); }
+            else { displayedSnakeGame.UpdateSnake(); }
         }
         else
         {
-            // This is crazy fast holy moly, snake games in parallel.
+            // This is crazy fast holy moly, runs snake games in parallel.
             // Recommend a timestep of 0.01 if you want to interact with the UI so that can you pause or modify settings, but lower will mean far faster results.
+            // TODO: Throw this onto a separate thread so that it doesn't lock the UI and isn't restricted to timestep.
             Parallel.For(0, populationSize, i =>
             {
                 var game = new SnakeGame();
@@ -317,16 +353,13 @@ public class GameManager : MonoBehaviour
                 }
             }
             // Next Generation
-            if (generationLimitEnabled && generation > generationLimit)
-            {
-                simulationTerminated = true;
-            }
-            else
+            if (!shouldSimulationTerminate())
             {
                 createNewGeneration();
             }
         }
     }
+
     private void sequentialSnakeGameUpdate()
     {
         /*
@@ -353,11 +386,7 @@ public class GameManager : MonoBehaviour
                 if (currentSnake >= population.Length)
                 {
                     // Next Generation
-                    if (generationLimitEnabled && generation > generationLimit)
-                    {
-                        simulationTerminated = true;
-                    }
-                    else
+                    if (!shouldSimulationTerminate())
                     {
                         createNewGeneration();
                     }
@@ -371,6 +400,21 @@ public class GameManager : MonoBehaviour
                 displayedSnakeGame.Restart(bestDNA.Clone());
             }
         }
+        else
+        {
+            displayedSnakeGame.UpdateSnake();
+        }
+    }
+
+    private bool shouldSimulationTerminate()
+    {
+        if (generationLimitEnabled && generation > generationLimit)
+        {
+            simulationTerminated = true;
+            return true;
+        }
+
+        return false;
     }
 
     private void createNewGeneration()
@@ -408,7 +452,7 @@ public class GameManager : MonoBehaviour
     }
 
     // Purely for initialising a new gameObject, ideally this should only be called once and then the game should be restarted once finished.
-    public void CreateSnake()
+    public void createSnake()
     {
         if (displayedSnakeGame != null) { Destroy(displayedSnakeGame.gameObject); }
         GameObject newSnake = Instantiate(SnakeGamePrefab);
