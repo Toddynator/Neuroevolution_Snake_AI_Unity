@@ -7,6 +7,7 @@ using Mono.Cecil;
 using System.Linq;
 using System.Reflection.Emit;
 using TMPro;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -33,10 +34,11 @@ public class GameManager : MonoBehaviour
     public Color headColor = Color.green;
     public Color tailColor = new Color(0, 0.5f, 0, 1);
     public bool fixedRNGSeed = true;
-    public int randomGenerationSeed = 42; 
+    public int randomGenerationSeed = 42;
 
     /// GENETIC ALGORITHMS
 
+    public bool parallelExecution = false; // Instead of running snake unity game objects which visually display the game, I run snake processes on multiple threads. Only show the final snake game.
     public int populationSize = 10;
     public int generationLimit = 15; // When to stop simulating and display the best candidate.
     public bool generationLimitEnabled = true;
@@ -70,6 +72,7 @@ public class GameManager : MonoBehaviour
 
     private DNA[] population;
     private SnakeBehaviour snake;
+    private SnakeGame snakeProcess;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -119,39 +122,123 @@ public class GameManager : MonoBehaviour
         }
         bestDNA = population[0];
         CreateSnake();
+        snakeProcess = new SnakeGame();
+        snakeProcess.Initialize(population[0], this);
     }
 
     // Update is called once per frame
     void Update()
     {
         /// UPDATE UI
-        // Later this should probably be moved to game controller, and game controller should be in charge of selecting the snake and updating the UI.
 
-        if (snake != null)
+        // Generation Limit Toggle
+        bool prevGenLimitState = generationLimitEnabled;
+        generationLimitEnabled = generationLimitToggle.isOn;
+        // Pause Button State
+        if (simulationTerminated) { pauseButton.GetComponentInChildren<TextMeshProUGUI>().text = "Resume Training"; }
+        else { pauseButton.GetComponentInChildren<TextMeshProUGUI>().text = "Pause Training"; }
+
+        snakeNumText.text = "Snake Number: " + currentSnake;
+        popSizeText.text = "Population Size: " + populationSize;
+        genNumText.text = "Generation: " + generation;
+        timeStepText.text = "TimeStep: " + fixedTimeStep;
+        generationLimitText.text = "Generation Limit: " + generationLimit;
+        bestFitnessText.text = "Best Fitness: " + bestDNA.fitness;
+        bestFitnessGenerationText.text = "Best Fitness Generation: " + bestFitnessGeneration;
+
+        // Snake Specific UI
+        if (simulationTerminated || !parallelExecution)
         {
             distanceToObstacleText.text = "Distance to Obstacle: " + snake.distanceToObstacleInFront;
             distanceToAppleText.text = "Distance to Apple: " + snake.distanceToApple;
             seeAppleText.text = "Sees Apple: " + snake.seeApple;
-            snakeNumText.text = "Snake Number: " + currentSnake;
-            popSizeText.text = "Population Size: " + populationSize;
-            genNumText.text = "Generation: " + generation;
-            timeStepText.text = "TimeStep: " + fixedTimeStep;
-            generationLimitText.text = "Generation Limit: " + generationLimit;
-            bestFitnessText.text = "Best Fitness: " + bestDNA.fitness;
-            bestFitnessGenerationText.text = "Best Fitness Generation: " + bestFitnessGeneration;
             snake.CalculateFitness();
-            fitnessText.text = "Fitness: " + snake.dna.fitness;
-            // Generation Limit Toggle
-            bool prevGenLimitState = generationLimitEnabled;
-            generationLimitEnabled = generationLimitToggle.isOn;
-            // Pause Button State
-            if(simulationTerminated) { pauseButton.GetComponentInChildren<TextMeshProUGUI>().text = "Resume Training"; }
-            else { pauseButton.GetComponentInChildren<TextMeshProUGUI>().text = "Pause Training"; }
+            fitnessText.text = "Fitness: " + snake.dna.fitness;          
+        }
+        else
+        {
+            distanceToObstacleText.text = "Distance to Obstacle: " + snakeProcess.distanceToObstacleInFront;
+            distanceToAppleText.text = "Distance to Apple: " + snakeProcess.distanceToApple;
+            seeAppleText.text = "Sees Apple: " + snakeProcess.seeApple;
+            snakeProcess.CalculateFitness();
+            fitnessText.text = "Fitness: " + snakeProcess.dna.fitness;
         }
     }
 
+    // This is ideal for running the snake game when visually displaying as I can control the timestep.
     public void FixedUpdate()
     {
+        if (parallelExecution)
+        {
+            parallelSnakeGameUpdate();
+        }
+        else
+        {
+            sequentialSnakeGameUpdate();
+        }
+    }
+
+    private void parallelSnakeGameUpdate()
+    {
+        /*
+        NOTE:
+        Currently this is just running my pure C# snake game script, 
+        need to setup C# multithreading next.
+
+        This function will attempt to train as many snake games in parallel as it can in each generation.
+        Once the simulation is terminated, it will then display a single game with the best fitness DNA.
+         */
+
+        snakeProcess.Update();
+        if (simulationTerminated)
+        {
+            // Run the best fitness DNA repeatedly.
+            if (snake.alive == false) { snake.Restart(bestDNA.Clone()); }
+        }
+        else
+        {
+            if (snakeProcess.alive == false)
+            {
+                // Determine if snake is the best candidate.
+                population[currentSnake].fitness = snakeProcess.CalculateFitness();
+                if (population[currentSnake].fitness > bestDNA.fitness)
+                {
+                    // Store the dna (Once program is terminated, can then use the best DNA for the AI).
+                    // Could optionally serialize it as well.
+                    bestDNA = snakeProcess.dna.Clone();
+                    bestFitnessGeneration = generation;
+                }
+
+                // Move to the next snake
+                currentSnake++;
+                if (currentSnake >= population.Length)
+                {
+                    // Next Generation
+                    generation++;
+
+                    if (generationLimitEnabled && generation > generationLimit)
+                    {
+                        simulationTerminated = true;
+                    }
+                    else
+                    {
+                        createNewGeneration();
+                    }
+
+                    currentSnake = 0;
+                }
+                // Update snake DNA
+                snakeProcess.Restart(population[currentSnake]);
+            }
+        }
+    }
+    private void sequentialSnakeGameUpdate()
+    {
+        /*
+        This visually displays each snake game that is running, when simulation is terminated
+        it will then run and display a snake game with the best fitness DNA.
+         */
+
         if (snake.alive == false)
         {
             if (simulationTerminated == false)
@@ -227,21 +314,15 @@ public class GameManager : MonoBehaviour
         population = newPopulation;
     }
 
+    // Purely for initialising a new gameObject, ideally this should only be called once and then the game should be restarted once finished.
     public void CreateSnake()
     {
         if (snake != null) { Destroy(snake.gameObject); }
         GameObject newSnake = Instantiate(SnakeGamePrefab);
         newSnake.transform.position = new Vector3(0.0f - (SceneSize.x/2), 0.0f - (SceneSize.y/2), 0.0f); // Centre the game on the screen
         SnakeBehaviour newSnakeBehaviour = newSnake.GetComponent<SnakeBehaviour>();
-        if (simulationTerminated)
-        {
-            // Use the best performer
-            newSnakeBehaviour.Initialize(bestDNA.Clone(), this);
-        }
-        else
-        {
-            newSnakeBehaviour.Initialize(population[currentSnake], this);
-        }
+        if (simulationTerminated) { newSnakeBehaviour.Initialize(bestDNA.Clone(), this); }
+        else { newSnakeBehaviour.Initialize(population[currentSnake], this); }
         snake = newSnakeBehaviour;
     }
 

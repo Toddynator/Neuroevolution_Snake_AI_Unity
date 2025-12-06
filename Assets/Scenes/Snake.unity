@@ -2105,6 +2105,7 @@ MonoBehaviour:
   tailColor: {r: 0, g: 0.5, b: 0, a: 1}
   fixedRNGSeed: 1
   randomGenerationSeed: 42
+  parallelExecution: 0
   populationSize: 100
   generationLimit: 300
   generationLimitEnabled: 1

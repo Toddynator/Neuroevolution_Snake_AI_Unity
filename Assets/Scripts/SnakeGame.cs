@@ -1,0 +1,332 @@
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+public class SnakeGame
+{
+    /// CORE
+
+    private TileType[,] grid; // X & Y, Represents every tile in the game of Snake.
+    private Vector2Int gridSize; // For convenience
+    private Vector2Int applePosition;
+    private Vector2Int snakeHeadStartPosition;
+    private List<Vector2Int> segments;
+    private List<Color> segmentColours = new List<Color>(); // Will remain a size of 1 unless gradient is enabled in the Game Manager.
+    public DNA dna; // How the Snake chooses its actions.
+    public Color AppleColor = new Color(1.0f, 0.0f, 0.0f);
+    public Color WallColor = new Color(1.0f, 1.0f, 1.0f);
+    private System.Random random;
+    private int randomGenerationSeed;
+    private bool useFixedRNGSeed = false;
+    private bool useSnakeColourGradient = false;
+    private Color headColor;
+    private Color tailColor;
+    private int growthPerApple = 1;
+
+    /// MOVEMENT
+
+    private Vector2Int direction = Vector2Int.right;
+    private Vector2Int prevDirection = Vector2Int.right; // For stopping the snake from moving back into itself. Only important if I don't use turnDirection for whatever reason. (E.g. playing snake myself)
+    private int turnDirection = 0; // -1 to 1, 0 to move forward
+
+    /// STATS
+
+    public int distanceToObstacleInFront;
+    public float distanceToApple; // Since I want to consider distance even if it isn't in line of sight, this is a float (To account for diagonals)
+    public bool seeApple;
+    public bool alive = true;
+    private bool diedToCollision = false;
+    private int numMovesSinceLastApple = 0;
+    public int numberOfApplesConsumed = 0;
+    public int numOfMoves = 0;
+    public int averageMovesPerApple = 0;
+    public int numOfMovesWhenGreatestLengthReached = 0;
+
+    public void Initialize(DNA newDNA, GameManager gameManager)
+    {
+        dna = newDNA;
+        randomGenerationSeed = gameManager.randomGenerationSeed;
+        useFixedRNGSeed = gameManager.fixedRNGSeed;
+        useSnakeColourGradient = gameManager.SnakeColourGradient;
+        headColor = gameManager.headColor;
+        tailColor = gameManager.tailColor;
+        growthPerApple = gameManager.GrowthPerApple;
+        segmentColours.Add(headColor);
+        if (useFixedRNGSeed)
+        {
+            random = new System.Random(randomGenerationSeed);
+        }
+        else
+        {
+            random = new System.Random();
+        }
+
+        /// SETUP THE WALLS 
+
+        gridSize = new Vector2Int((int)gameManager.SceneSize.x, (int)gameManager.SceneSize.y);
+        grid = new TileType[gridSize.x, gridSize.y];
+        for (int x = 0; x < gridSize.x; x++)
+        {
+            for (int y = 0; y < gridSize.y; y++)
+            {
+                // Create walls at the edges of the arena.
+                if (x == 0 || x == gridSize.x - 1 || y == 0 || y == gridSize.y - 1)
+                {
+                    grid[x, y] = TileType.Wall;
+                }
+            }
+        }
+
+        snakeHeadStartPosition = new Vector2Int((int)(gridSize.x / 2), (int)(gridSize.y / 2)); // Start at the midpoint.
+        segments = new List<Vector2Int>();
+        segments.Add(snakeHeadStartPosition);
+        spawnApple();
+    }
+
+    public void Restart(DNA newDNA)
+    {
+        if (useFixedRNGSeed)
+        {
+            random = new System.Random(randomGenerationSeed);
+        }
+        dna = newDNA;
+
+        // Revert Stats
+        direction = Vector2Int.right;
+        prevDirection = Vector2Int.right;
+        turnDirection = 0;
+        alive = true;
+        diedToCollision = false;
+        numMovesSinceLastApple = 0;
+        numberOfApplesConsumed = 0;
+        numOfMoves = 0;
+        averageMovesPerApple = 0;
+        numOfMovesWhenGreatestLengthReached = 0;
+        distanceToApple = 0;
+        distanceToObstacleInFront = 0;
+        seeApple = false;
+
+        // EDGE CASE: Remove apple first incase it was overlapped by snake
+        grid[applePosition.x, applePosition.y] = TileType.Empty;
+        // Remove segments
+        for (int i = 0; i < segments.Count; i++)
+        {
+            grid[segments[i].x, segments[i].y] = TileType.Empty;
+        }
+        // Replace wall tile if the snake was over a wall position.
+        if (segments[0].x == 0 || segments[0].x == gridSize.x - 1 || segments[0].y == 0 || segments[0].y == gridSize.y - 1)
+        {
+            grid[segments[0].x, segments[0].y] = TileType.Wall;
+        }
+        segments[0] = snakeHeadStartPosition;
+        segments = new List<Vector2Int>();
+        segments.Add(snakeHeadStartPosition);
+        if (segmentColours.Count <= 0) { segmentColours.Add(headColor); }
+
+        // Regenerate Apple
+        spawnApple();
+    }
+
+    public void Update()
+    {
+        if (!alive) { return; }
+
+        //// MOVE SNAKE
+
+        updateDirection();
+
+        /// Update Segments
+        // Only need to remove the last segment of the snake.
+        grid[segments[segments.Count - 1].x, segments[segments.Count - 1].y] = TileType.Empty;
+        for (int i = segments.Count - 1; i > 0; i--)
+        {
+            segments[i] = segments[i - 1];
+            grid[segments[i].x, segments[i].y] = TileType.Snake;
+        }
+        /// Update Head
+        segments[0] += direction;
+
+        prevDirection = direction;
+        numOfMoves++;
+        numMovesSinceLastApple++;
+
+        // Check for collisions ~ Only need to check for collisions in the head.
+        if (grid[segments[0].x, segments[0].y] == TileType.Wall || grid[segments[0].x, segments[0].y] == TileType.Snake)
+        {
+            diedToCollision = true;
+            gameOver();
+        }
+        else if (grid[segments[0].x, segments[0].y] == TileType.Apple)
+        {
+            grow();
+            spawnApple();
+
+            numberOfApplesConsumed++;
+            numOfMovesWhenGreatestLengthReached = numOfMoves;
+            numMovesSinceLastApple = 0;
+        }
+        if (alive) // This is more a personal choice for visuals, I don't want the snake head to overlap the object it collided with on death.
+        {
+            grid[segments[0].x, segments[0].y] = TileType.Snake;
+        }
+
+        //// SNAKE SENSES ~ What it sees
+
+        Vector2 differenceAppleAndSnakeVector = applePosition - segments[0];
+        distanceToApple = differenceAppleAndSnakeVector.magnitude;
+
+        seeApple = false;
+        Vector2Int currentScanPosition = segments[0];
+        if (currentScanPosition.x >= gridSize.x - 1 || currentScanPosition.x <= 0 || currentScanPosition.y <= 0 || currentScanPosition.y >= gridSize.y - 1)
+        {
+            distanceToObstacleInFront = 0;
+        }
+        else
+        {
+            for (int i = 0; i < Mathf.Max(gridSize.x, gridSize.y); i++)
+            {
+                currentScanPosition += direction;
+                TileType scannedTile = grid[currentScanPosition.x, currentScanPosition.y];
+                if (scannedTile == TileType.Apple)
+                {
+                    seeApple = true;
+                }
+                else if (scannedTile != TileType.Empty)
+                {
+                    Vector2Int difference = currentScanPosition - segments[0];
+                    distanceToObstacleInFront = (int)difference.magnitude;
+                    break;
+                }
+            }
+        }
+
+        //// TERMINATE EARLY ~ e.g. snake takes too long
+
+        if (numMovesSinceLastApple >= gridSize.x * gridSize.y)
+        {
+            gameOver();
+        }
+        // NOTE: This should be removed if I change dna to instead be used as weightings and therefore have a 'reactive' AI.
+        if (numMovesSinceLastApple > dna.genes.Length)
+        {
+            gameOver();
+        }
+    }
+
+    private void grow()
+    {
+        for (int i = 0; i < growthPerApple; i++)
+        {
+            Vector2Int segment = segments[segments.Count - 1];
+            segments.Add(segment);
+        }
+
+        /// UPDATE COLOUR GRADIENT (If enabled)
+
+        if (useSnakeColourGradient)
+        {
+            for (int i = 0; i < segments.Count; i++)
+            {
+                // Gradient from head to tail
+                Color color = Color.Lerp(headColor, tailColor, (float)i / (segments.Count - 1));
+                if (i > segmentColours.Count - 1) { segmentColours.Add(color); }
+                else { segmentColours[i] = color; }
+            }
+        }
+
+        // EDGE CASE: Snake has outgrown the level.
+        if (segments.Count >= (grid.GetLength(0) - 1) * (grid.GetLength(1) - 1)) { gameOver(); return; }
+    }
+
+    private void spawnApple()
+    {
+        /// TODO, add a way to use the same seed every time, should use apples consumed to ensure apples spawn in a different location each time as well.
+        /// Also should improve this so that it keeps track of positions it has already tried.   
+
+        bool emptyPositionFound = false;
+        while (!emptyPositionFound)
+        {
+            applePosition = Vector2Int.zero;
+            // Account for walls on the edge tiles.
+            applePosition.x = random.Next(1, gridSize.x - 1);
+            applePosition.y = random.Next(1, gridSize.y - 1);
+            // Check if its already occupied by the snake
+            if (grid[applePosition.x, applePosition.y] == TileType.Empty)
+            {
+                emptyPositionFound = true;
+                grid[applePosition.x, applePosition.y] = TileType.Apple;
+            }
+        }
+    }
+
+    private void gameOver()
+    {
+        alive = false;
+        if (numberOfApplesConsumed > 0) { averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed; }
+    }
+
+    private void updateDirection()
+    {
+        // Turn snake ~ Currently use Genes as a list of inputs.
+        turnDirection = dna.genes[numOfMoves % dna.genes.Length];
+        if (turnDirection == -1) // Turn Left
+        {
+            if (direction == Vector2Int.up)
+            {
+                direction = Vector2Int.left;
+            }
+            else if (direction == Vector2Int.left)
+            {
+                direction = Vector2Int.down;
+            }
+            else if (direction == Vector2Int.down)
+            {
+                direction = Vector2Int.right;
+            }
+            else
+            {
+                direction = Vector2Int.up;
+            }
+        }
+        else if (turnDirection == 1) // Turn Right
+        {
+            if (direction == Vector2.up)
+            {
+                direction = Vector2Int.right;
+            }
+            else if (direction == Vector2.right)
+            {
+                direction = Vector2Int.down;
+            }
+            else if (direction == Vector2.down)
+            {
+                direction = Vector2Int.left;
+            }
+            else
+            {
+                direction = Vector2Int.up;
+            }
+        }
+    }
+
+    public float CalculateFitness()
+    {
+        float score = 0.0f;
+
+        const float SCORE_PER_APPLE = 10.0f;
+        const float SCORE_MOVES_MULTIPLIER = 2.0f; // I want to reward optimal routes
+        const float SCORE_COLLISION_PENALTY_MULTIPLIER = 0.9f;
+        const float SCORE_DECAY_RATE = 0.01f; // Should improve this to be based on maximum number of moves possible in a scene.
+        float maxPossibleDistanceToApple = gridSize.magnitude;
+
+        score += numberOfApplesConsumed * SCORE_PER_APPLE; // Primarily reward based on number of apples gained
+        score += SCORE_PER_APPLE * (1.0f - distanceToApple / maxPossibleDistanceToApple); // Reward getting closer to the apple with each generation
+        if (diedToCollision) { score *= SCORE_COLLISION_PENALTY_MULTIPLIER; } // Penalise the snake killing itself so that the generations don't get trapped on DNA that involves moving into a wall
+        score = score * Mathf.Exp(numOfMovesWhenGreatestLengthReached * -(SCORE_DECAY_RATE)) * SCORE_MOVES_MULTIPLIER; // Should reward / penalise for taking too many moves to get each apple.
+
+        dna.fitness = score;
+
+        return score;
+    }
+}
