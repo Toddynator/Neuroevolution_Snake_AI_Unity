@@ -6,6 +6,7 @@ using TMPro;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 
@@ -202,7 +203,7 @@ public class GameManager : MonoBehaviour
         }
         widgetRect.y += widgetVerticalSpacing * 0.6f;
         GUI.enabled = (trainingStarted);
-        if (GUI.Button(widgetRect, "Restart Training"))
+        if (GUI.Button(widgetRect, "Stop Training"))
         {
             trainingStarted = false;
             simulationTerminated = false;
@@ -240,16 +241,19 @@ public class GameManager : MonoBehaviour
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.3f;
         if (GameSettingsUIEnabled)
         {
+            GUI.enabled = !trainingStarted;
             GUILayout.BeginArea(widgetRect);
             parallelExecution = GUILayout.Toggle(parallelExecution, "Parallel Execution");
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUI.enabled = true;
 
             GUILayout.BeginArea(widgetRect);
             SnakeColourGradient = GUILayout.Toggle(SnakeColourGradient, "Snake Colour Gradient");
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
+            GUI.enabled = !trainingStarted;
             GUI.Label(widgetRect, "Game Size: " + SceneSize);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
@@ -267,6 +271,7 @@ public class GameManager : MonoBehaviour
                 SceneSize.y = inputFloat;
             }
             GUILayout.EndArea();
+            GUI.enabled = true;
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.Label(widgetRect, "Growth per Apple: " + GrowthPerApple);
@@ -292,6 +297,7 @@ public class GameManager : MonoBehaviour
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
+            GUI.enabled = !trainingStarted;
             GUI.Label(widgetRect, "RNG Seed: " + randomGenerationSeed);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
@@ -305,6 +311,7 @@ public class GameManager : MonoBehaviour
                 randomGenerationSeed = inputInt;
             }
             GUILayout.EndArea();
+            GUI.enabled = true;
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
         }
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
@@ -350,6 +357,7 @@ public class GameManager : MonoBehaviour
             if (float.TryParse(inputMutationRate, out inputFloat))
             {
                 MutationRate = inputFloat;
+                MutationRate = Mathf.Clamp01(MutationRate);
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
@@ -361,6 +369,7 @@ public class GameManager : MonoBehaviour
             if (float.TryParse(inputSelectionPercentage, out inputFloat))
             {
                 SelectionPercentage = inputFloat;
+                SelectionPercentage = Mathf.Clamp01(SelectionPercentage);
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
@@ -372,6 +381,7 @@ public class GameManager : MonoBehaviour
             if (float.TryParse(inputElitistSelectionPercentage, out inputFloat))
             {
                 elitistPopulationPercentage = inputFloat;
+                elitistPopulationPercentage = Mathf.Clamp01(elitistPopulationPercentage);
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
