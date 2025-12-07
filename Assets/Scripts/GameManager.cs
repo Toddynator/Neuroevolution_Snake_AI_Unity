@@ -202,11 +202,15 @@ public class GameManager : MonoBehaviour
                 // Start writing to file. Will append to previous entries instead of overwriting.
                 string fileName = trainingLogFileName + ".csv";
                 streamWriter = new StreamWriter(fileName, append: true); // This means I could reuse one file and have multiple training sessions logged to it.
-                // Write Header ~ Space out from previous training session (If any)
-                if (new FileInfo("training_log.csv").Length != 0)
+                // Write Settings ~ Space out from previous training session (If any)
+                if (new FileInfo(fileName).Length != 0)
                 {
                     streamWriter.WriteLine("");
                 }
+                streamWriter.WriteLine("RunNumber,Mutation Rate,Population Size,Gene Size,Parallel, Fixed RNG Seed,Selection Percentage,Elitist Selection Percentage");
+                streamWriter.WriteLine(runCount + "," + MutationRate + "," + populationSize + "," + numGenes + "," + parallelExecution + "," + fixedRNGSeed + "," + SelectionPercentage + "," + elitistPopulationPercentage);
+                streamWriter.WriteLine("");
+                // Write Header
                 streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness");
             }
         }
