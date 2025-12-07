@@ -199,14 +199,15 @@ public class GameManager : MonoBehaviour
                 createInitialPopulation();
                 createSnake();
 
+                // Start writing to file. Will append to previous entries instead of overwriting.
                 string fileName = trainingLogFileName + ".csv";
-                //streamWriter = new StreamWriter(fileName, append: true); // This means I could reuse one file and have multiple training sessions logged to it.
-                streamWriter = new StreamWriter(fileName, append: false);
-                // Write the Header if file is new
-                if (new FileInfo(fileName).Length == 0)
+                streamWriter = new StreamWriter(fileName, append: true); // This means I could reuse one file and have multiple training sessions logged to it.
+                // Write Header ~ Space out from previous training session (If any)
+                if (new FileInfo("training_log.csv").Length != 0)
                 {
-                    streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness");
+                    streamWriter.WriteLine("");
                 }
+                streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness");
             }
         }
         else
@@ -236,6 +237,15 @@ public class GameManager : MonoBehaviour
             trainingStarted = false;
             simulationTerminated = false;
             streamWriter.Close(); // Close file so that it can be opened.
+        }
+        GUI.enabled = true;
+        widgetRect.y += widgetVerticalSpacing * 0.6f;
+        GUI.enabled = (!trainingStarted);
+        if (GUI.Button(widgetRect, "Clear Log File"))
+        {
+            string fileName = trainingLogFileName + ".csv";
+            streamWriter = new StreamWriter(fileName, append: false);
+            streamWriter.Close();
         }
         GUI.enabled = true;
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.3f;
@@ -532,6 +542,7 @@ public class GameManager : MonoBehaviour
             population[i].fitness = game.CalculateFitness();
         });
         // Determine best fitness    
+        generationsLowestFitness = population[0].fitness; // So that it doesn't start at 0.
         for (int i = 0; i < population.Length; i++)
         {
             generationsBestFitness = MathF.Max(population[i].fitness, generationsBestFitness);
@@ -562,7 +573,8 @@ public class GameManager : MonoBehaviour
         if (displayedSnakeGame.GetSnakeGame().alive == false)
         {
             if (simulationTerminated == false)
-            {             
+            {          
+                if (currentSnake == 0) { generationsLowestFitness = population[0].fitness; }
                 population[currentSnake].fitness = displayedSnakeGame.GetSnakeGame().CalculateFitness();
                 // Update statistics
                 generationsBestFitness = MathF.Max(population[currentSnake].fitness, generationsBestFitness);
