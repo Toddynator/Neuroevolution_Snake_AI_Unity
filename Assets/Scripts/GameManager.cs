@@ -86,6 +86,7 @@ public class GameManager : MonoBehaviour
     private string inputSceneY = "";
 
 
+
     ///////////////
     ///// FUNCTIONS
 
