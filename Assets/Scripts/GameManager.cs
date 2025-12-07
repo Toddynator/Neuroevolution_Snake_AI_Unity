@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Reflection.Emit;
 using System.Threading;
@@ -48,6 +49,8 @@ public class GameManager : MonoBehaviour
 
     /// GENETIC ALGORITHM
 
+    private Task parallelTrainingTask;
+    private bool parallelTaskRunning = false;
     private int generation = 0;
     private int currentSnake = 0; // Run the games sequentially, this is how newly created snakes will get their corresponding DNA on initialization.
     private DNA bestDNA = null; // Highest Fitness DNA
@@ -56,6 +59,7 @@ public class GameManager : MonoBehaviour
     private bool trainingStarted = false;
     private DNA[] population;
     private TilemapSnakeGame displayedSnakeGame;
+    private System.Random random = new System.Random();
 
     /// UI
     private bool GeneticAlgorithmUIEnabled = true;
@@ -64,7 +68,7 @@ public class GameManager : MonoBehaviour
     private string inputPop = "";
     private string inputGeneNum = "";
     private string inputGenLimit = "";
-    private string inputTimeStep = "0.01";
+    private string inputTimeStep = "";
     private string inputAppleGrowth = "";
     private string inputSelectionPercentage = "";
     private string inputElitistSelectionPercentage = "";
@@ -95,7 +99,7 @@ public class GameManager : MonoBehaviour
         population = new DNA[populationSize];
         for (int i = 0; i < populationSize; i++)
         {
-            population[i] = new DNA(numGenes);
+            population[i] = new DNA(numGenes, random);
         }
         bestDNA = population[0];
     }
@@ -173,6 +177,7 @@ public class GameManager : MonoBehaviour
             {
                 trainingStarted = true;
                 simulationTerminated = false;
+                parallelTaskRunning = false;
                 generation = 0;
                 currentSnake = 0;
                 bestFitnessGeneration = 0;
@@ -190,6 +195,7 @@ public class GameManager : MonoBehaviour
                 if (GUI.Button(widgetRect, "Resume Training"))
                 {
                     simulationTerminated = false;
+                    parallelTaskRunning = false;
                 }
                 GUI.enabled = true;
             }
@@ -454,7 +460,21 @@ public class GameManager : MonoBehaviour
         {
             if (parallelExecution)
             {
-                parallelSnakeGameUpdate();
+                if (!parallelTaskRunning)
+                {                 
+                    if (!simulationTerminated)
+                    {
+                        // Run the training on a separate thread so that it doesn't block the main thread (UI Input, etc).
+                        parallelTaskRunning = true;
+                        parallelTrainingTask = Task.Run(() => parallelTrainingLoop());
+                    }
+                    else
+                    {
+                        // Run the best fitness DNA repeatedly.
+                        if (displayedSnakeGame.GetSnakeGame().alive == false) { displayedSnakeGame.Restart(bestDNA.Clone()); }
+                        else { displayedSnakeGame.UpdateSnake(); }
+                    }
+                }
             }
             else
             {
@@ -463,47 +483,46 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // ONLY RUN THIS ON A SEPARATE THREAD, OTHERWISE IT WILL BLOCK THE REST OF THE APPLICATION SUCH AS THE UI.
+    private void parallelTrainingLoop()
+    {
+        while (!simulationTerminated)
+        {
+            parallelSnakeGameUpdate();
+        }
+        parallelTaskRunning = false;
+    }
+
     private void parallelSnakeGameUpdate()
     {
         /*
         This function will attempt to train as many snake games in parallel as it can in each generation.
         Once the simulation is terminated, it will then display a single game with the best fitness DNA.
          */
-
-        if (simulationTerminated)
+    
+        // This is crazy fast holy moly, runs snake games in parallel.
+        Parallel.For(0, populationSize, i =>
         {
-            // Run the best fitness DNA repeatedly.
-            if (displayedSnakeGame.GetSnakeGame().alive == false) { displayedSnakeGame.Restart(bestDNA.Clone()); }
-            else { displayedSnakeGame.UpdateSnake(); }
+            var game = new SnakeGame();
+            game.Initialize(population[i], this);
+            while (game.alive) { game.Update(); }
+            population[i].fitness = game.CalculateFitness();
+        });
+        // Determine best fitness
+        for (int i = 0; i < population.Length; i++)
+        {
+            if (population[i].fitness > bestDNA.fitness)
+            {
+                // Store the dna (Once program is terminated, can then use the best DNA for the AI).
+                // Could optionally serialize it as well.
+                bestDNA = population[i].Clone();
+                bestFitnessGeneration = generation;
+            }
         }
-        else
+        // Next Generation
+        if (!shouldSimulationTerminate())
         {
-            // This is crazy fast holy moly, runs snake games in parallel.
-            // Recommend a timestep of 0.01 if you want to interact with the UI so that can you pause or modify settings, but lower will mean far faster results.
-            // TODO: Throw this onto a separate thread so that it doesn't lock the UI and isn't restricted to timestep.
-            Parallel.For(0, populationSize, i =>
-            {
-                var game = new SnakeGame();
-                game.Initialize(population[i], this);
-                while (game.alive) { game.Update(); }
-                population[i].fitness = game.CalculateFitness();
-            });
-            // Determine best fitness
-            for (int i = 0; i < population.Length; i++)
-            {
-                if (population[i].fitness > bestDNA.fitness)
-                {
-                    // Store the dna (Once program is terminated, can then use the best DNA for the AI).
-                    // Could optionally serialize it as well.
-                    bestDNA = population[i].Clone();
-                    bestFitnessGeneration = generation;
-                }
-            }
-            // Next Generation
-            if (!shouldSimulationTerminate())
-            {
-                createNewGeneration();
-            }
+            createNewGeneration();
         }
     }
 
@@ -581,14 +600,14 @@ public class GameManager : MonoBehaviour
             else
             {
                 // Selection
-                DNA parent1 = chooseParent();
-                DNA parent2 = chooseParent();
+                DNA parent1 = chooseParent(random);
+                DNA parent2 = chooseParent(random);
 
                 // Crossover
-                DNA child = parent1.Crossover(parent2);
+                DNA child = parent1.Crossover(parent2, random);
 
                 // Mutation
-                child.Mutate(MutationRate);
+                child.Mutate(MutationRate, random);
 
                 newPopulation[i] = child;
             }
@@ -610,13 +629,13 @@ public class GameManager : MonoBehaviour
         displayedSnakeGame = newSnakeGame;
     }
 
-    private DNA chooseParent()
+    private DNA chooseParent(System.Random random)
     {
         // Population should be sorted in descending order of fitness before calling this function.
 
         // Chooses a random parent from the fittest candidates of the population.
         int fittestPopulationLength = (int)(populationSize * SelectionPercentage);
-        int parentIndex = UnityEngine.Random.Range(0, fittestPopulationLength);
+        int parentIndex = random.Next(0, fittestPopulationLength);
         return population[parentIndex];
     }
 }

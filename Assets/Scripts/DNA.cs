@@ -15,7 +15,7 @@ public class DNA
     public int[] genes;
     public float fitness = 0.0f;
 
-    public DNA(int numGenes)
+    public DNA(int numGenes, System.Random random)
     {
         /// Initialize Genes
         // Should start with random inputs then converge on a solution over several generations of mutations and crossovers.
@@ -23,8 +23,12 @@ public class DNA
         genes = new int[numGenes];    
         for (int i = 0; i < numGenes; i++)
         {
-            genes[i] = UnityEngine.Random.Range(-1, 2);
+            genes[i] = random.Next(-1, 2);
         }
+    }
+    public DNA(int numGenes)
+    {
+        genes = new int[numGenes];
     }
 
     public DNA Clone()
@@ -35,7 +39,7 @@ public class DNA
         return copy;
     }
 
-    public DNA Crossover (DNA otherParent)
+    public DNA Crossover (DNA otherParent, System.Random random)
     {
         DNA child = new DNA(genes.Length);
 
@@ -43,7 +47,7 @@ public class DNA
         // 50/50 for each gene which parent will be used.
         for (int i = 0; i < genes.Length; i++)
         {
-            if (UnityEngine.Random.value > 0.5f)
+            if (random.NextDouble() > 0.5f)
             {
                 child.genes[i] = otherParent.genes[i];
             }
@@ -69,7 +73,7 @@ public class DNA
     }
 
     // Mutation rate between 0.0f and 1.0f
-    public void Mutate(float mutationRate)
+    public void Mutate(float mutationRate, System.Random random)
     {
         //for (int i = 0; i < genes.Length; i++)
         //{
@@ -96,10 +100,10 @@ public class DNA
 
         for (int i = 0; i < genes.Length; i++)
         {
-            if (UnityEngine.Random.Range(0.0f, 1.0f) < mutationRate)
+            if (random.NextDouble() < mutationRate)
             {
-                int geneToEdit = UnityEngine.Random.Range(0, genes.Length);
-                genes[geneToEdit] = UnityEngine.Random.Range(-1, 2);
+                int geneToEdit = random.Next(genes.Length);
+                genes[geneToEdit] = random.Next(-1, 2);
             }
         }
     }
