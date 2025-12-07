@@ -64,7 +64,13 @@ public class GameManager : MonoBehaviour
     private string inputGeneNum = "";
     private string inputGenLimit = "";
     private string inputTimeStep = "0.01";
-
+    private string inputAppleGrowth = "";
+    private string inputSelectionPercentage = "";
+    private string inputElitistSelectionPercentage = "";
+    private string inputMutationRate = "";
+    private string inputRNGSeed = "";
+    private string inputSceneX = "";
+    private string inputSceneY = "";
 
 
     ///////////////
@@ -76,17 +82,8 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         Time.fixedDeltaTime = fixedTimeStep;
-
-        /// EDGE CASES
-
         validateSceneSize();
-
-        /// RESIZE CAMERA TO FIT SCENE INTO VIEW
-
         updateCamera();
-
-        /// PREPARE THE SNAKES
-
         createInitialPopulation();
         createSnake();
     }
@@ -174,11 +171,14 @@ public class GameManager : MonoBehaviour
             if (GUI.Button(widgetRect, "Start Training"))
             {
                 trainingStarted = true;
-                createInitialPopulation();
                 simulationTerminated = false;
                 generation = 0;
                 currentSnake = 0;
                 bestFitnessGeneration = 0;
+                validateSceneSize();
+                updateCamera();
+                createInitialPopulation();
+                createSnake();
             }
         }
         else
@@ -232,17 +232,52 @@ public class GameManager : MonoBehaviour
         {
             TrainingProgressUIEnabled = !TrainingProgressUIEnabled;
         }
-        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.3f;
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
         GUI.color = defaultColor;
 
         /// SNAKE GAME SETTINGS
 
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.3f;
         if (GameSettingsUIEnabled)
         {
+            GUILayout.BeginArea(widgetRect);
+            parallelExecution = GUILayout.Toggle(parallelExecution, "Parallel Execution");
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+            GUILayout.BeginArea(widgetRect);
+            SnakeColourGradient = GUILayout.Toggle(SnakeColourGradient, "Snake Colour Gradient");
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
             GUI.Label(widgetRect, "Game Size: " + SceneSize);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputSceneX = GUILayout.TextField(inputSceneX);
+            if (float.TryParse(inputSceneX, out inputFloat))
+            {
+                SceneSize.x = inputFloat;
+            }
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputSceneY = GUILayout.TextField(inputSceneY);
+            if (float.TryParse(inputSceneY, out inputFloat))
+            {
+                SceneSize.y = inputFloat;
+            }
+            GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.Label(widgetRect, "Growth per Apple: " + GrowthPerApple);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputAppleGrowth = GUILayout.TextField(inputAppleGrowth);
+            if (int.TryParse(inputAppleGrowth, out inputInt))
+            {
+                GrowthPerApple = inputInt;
+            }
+            GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.Label(widgetRect, "Timestep: " + fixedTimeStep);
@@ -253,13 +288,26 @@ public class GameManager : MonoBehaviour
             {
                 Time.fixedDeltaTime = inputFloat;
                 fixedTimeStep = inputFloat;
-            }
-            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            }           
             GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.Label(widgetRect, "RNG Seed: " + randomGenerationSeed);
-            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.1f;
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            fixedRNGSeed = GUILayout.Toggle(fixedRNGSeed, "Fixed RNG Seed");
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputRNGSeed = GUILayout.TextField(inputRNGSeed);
+            if (int.TryParse(inputRNGSeed, out inputInt))
+            {
+                randomGenerationSeed = inputInt;
+            }
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
         }
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
 
         /// GENETIC ALGORITHM SETTINGS
 
@@ -297,11 +345,35 @@ public class GameManager : MonoBehaviour
 
             GUI.Label(widgetRect, "Mutation Rate: " + MutationRate);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputMutationRate = GUILayout.TextField(inputMutationRate);
+            if (float.TryParse(inputMutationRate, out inputFloat))
+            {
+                MutationRate = inputFloat;
+            }
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.Label(widgetRect, "Selection Percentage: " + SelectionPercentage);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputSelectionPercentage = GUILayout.TextField(inputSelectionPercentage);
+            if (float.TryParse(inputSelectionPercentage, out inputFloat))
+            {
+                SelectionPercentage = inputFloat;
+            }
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.Label(widgetRect, "Elite Selection Percentage: " + elitistPopulationPercentage);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputElitistSelectionPercentage = GUILayout.TextField(inputElitistSelectionPercentage);
+            if (float.TryParse(inputElitistSelectionPercentage, out inputFloat))
+            {
+                elitistPopulationPercentage = inputFloat;
+            }
+            GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.Label(widgetRect, "Generation Limit: " + generationLimit);
@@ -317,8 +389,9 @@ public class GameManager : MonoBehaviour
                 generationLimit = inputInt;
             }
             GUILayout.EndArea();
-            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.1f;
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
         }
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
 
         /// TRAINING STATISTICS
 
@@ -337,13 +410,15 @@ public class GameManager : MonoBehaviour
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.Label(widgetRect, "Snake: " + currentSnake);
-            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.1f;
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            if (simulationTerminated)
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
+            if (simulationTerminated || !parallelExecution)
             {
                 GUI.Label(widgetRect, "Snake Statistics", header);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
+                displayedSnakeGame.GetSnakeGame().CalculateFitness();
                 GUI.Label(widgetRect, "Fitness: " + displayedSnakeGame.GetSnakeGame().dna.fitness);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
