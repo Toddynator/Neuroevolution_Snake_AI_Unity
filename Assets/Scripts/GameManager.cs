@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection.Emit;
 using System.Threading;
@@ -60,6 +61,13 @@ public class GameManager : MonoBehaviour
     private DNA[] population;
     private TilemapSnakeGame displayedSnakeGame;
     private System.Random random = new System.Random();
+    private StreamWriter streamWriter; // Used for writing to file.
+    private string trainingLogFileName = "GeneticAlgorithmLog";
+    private int runCount = 0; // How many training sessions since program launch
+    private float generationsBestFitness = 0;
+    private float generationTotalFitness = 0;
+    private float generationAverageFitness = 0;
+    private float generationsLowestFitness = 0;
 
     /// UI
     private bool GeneticAlgorithmUIEnabled = true;
@@ -178,13 +186,27 @@ public class GameManager : MonoBehaviour
                 trainingStarted = true;
                 simulationTerminated = false;
                 parallelTaskRunning = false;
+                runCount++;
                 generation = 0;
                 currentSnake = 0;
                 bestFitnessGeneration = 0;
+                generationsBestFitness = 0;
+                generationTotalFitness = 0;
+                generationAverageFitness = 0;
+                generationsLowestFitness = 0;
                 validateSceneSize();
                 updateCamera();
                 createInitialPopulation();
                 createSnake();
+
+                string fileName = trainingLogFileName + ".csv";
+                //streamWriter = new StreamWriter(fileName, append: true); // This means I could reuse one file and have multiple training sessions logged to it.
+                streamWriter = new StreamWriter(fileName, append: false);
+                // Write the Header if file is new
+                if (new FileInfo(fileName).Length == 0)
+                {
+                    streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness");
+                }
             }
         }
         else
@@ -213,6 +235,7 @@ public class GameManager : MonoBehaviour
         {
             trainingStarted = false;
             simulationTerminated = false;
+            streamWriter.Close(); // Close file so that it can be opened.
         }
         GUI.enabled = true;
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.3f;
@@ -508,9 +531,12 @@ public class GameManager : MonoBehaviour
             while (game.alive) { game.Update(); }
             population[i].fitness = game.CalculateFitness();
         });
-        // Determine best fitness
+        // Determine best fitness    
         for (int i = 0; i < population.Length; i++)
         {
+            generationsBestFitness = MathF.Max(population[i].fitness, generationsBestFitness);
+            generationsLowestFitness = MathF.Min(population[i].fitness, generationsLowestFitness);
+            generationTotalFitness += population[i].fitness;            
             if (population[i].fitness > bestDNA.fitness)
             {
                 // Store the dna (Once program is terminated, can then use the best DNA for the AI).
@@ -536,9 +562,13 @@ public class GameManager : MonoBehaviour
         if (displayedSnakeGame.GetSnakeGame().alive == false)
         {
             if (simulationTerminated == false)
-            {
-                // Determine if snake is the best candidate.
+            {             
                 population[currentSnake].fitness = displayedSnakeGame.GetSnakeGame().CalculateFitness();
+                // Update statistics
+                generationsBestFitness = MathF.Max(population[currentSnake].fitness, generationsBestFitness);
+                generationsLowestFitness = MathF.Min(population[currentSnake].fitness, generationsLowestFitness);
+                generationTotalFitness += population[currentSnake].fitness;
+                // Determine if snake is the best candidate.
                 if (population[currentSnake].fitness > bestDNA.fitness)
                 {
                     // Store the dna (Once program is terminated, can then use the best DNA for the AI).
@@ -585,6 +615,13 @@ public class GameManager : MonoBehaviour
 
     private void createNewGeneration()
     {
+        // Write to file 
+        generationAverageFitness = generationTotalFitness / population.Length;
+        // Write to File
+        streamWriter.WriteLine(generation + "," + generationsBestFitness + "," + generationsLowestFitness + "," + generationAverageFitness);
+
+        // Create new population from previous generation.
+
         DNA[] newPopulation = new DNA[populationSize];
 
         // Sort in descending order of fitness
@@ -614,6 +651,10 @@ public class GameManager : MonoBehaviour
         }
         generation++;
         currentSnake = 0;
+        generationsBestFitness = 0;
+        generationTotalFitness = 0;
+        generationAverageFitness = 0;
+        generationsLowestFitness = 0;
         population = newPopulation;
     }
 
