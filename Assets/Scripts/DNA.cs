@@ -5,14 +5,15 @@ using UnityEngine;
 using static UnityEngine.GraphicsBuffer;
 
 /*
-In classic snake, the snake can only 2 turn directions, it can't go backwards.
-It can also choose to keep moving forward. With this in mind, I can represent input as a simple
-integer of -1 to 1, with 0 representing moving forward without turning.
+Use genes as weights for a neural network.
+
+My initial attempt used integer genes in a range of -1 to 1, and I used that directly as the input for which direction the snake turned.
+I now use them as weightings in a range of -1.0f to 1.0f and the neural network now determines the direction based on various inputs.
  */
 
 public class DNA
 {
-    public int[] genes;
+    public float[] genes;
     public float fitness = 0.0f;
 
     public DNA(int numGenes, System.Random random)
@@ -20,21 +21,27 @@ public class DNA
         /// Initialize Genes
         // Should start with random inputs then converge on a solution over several generations of mutations and crossovers.
 
-        genes = new int[numGenes];    
+        genes = new float[numGenes];    
         for (int i = 0; i < numGenes; i++)
         {
-            genes[i] = random.Next(-1, 2);
+            genes[i] = generateRandomGene(random);
         }
     }
     public DNA(int numGenes)
     {
-        genes = new int[numGenes];
+        genes = new float[numGenes];
+    }
+
+    private float generateRandomGene(System.Random random)
+    {
+        // Convert NextDouble() output into the range -1.0f to 1.0f.
+        return (float)((random.NextDouble() * 2.0) - 1.0);
     }
 
     public DNA Clone()
     {
         DNA copy = new DNA(genes.Length);
-        copy.genes = (int[])genes.Clone();
+        copy.genes = (float[])genes.Clone();
         copy.fitness = fitness;
         return copy;
     }
@@ -103,7 +110,7 @@ public class DNA
             if (random.NextDouble() < mutationRate)
             {
                 int geneToEdit = random.Next(genes.Length);
-                genes[geneToEdit] = random.Next(-1, 2);
+                genes[geneToEdit] = generateRandomGene(random);
             }
         }
     }

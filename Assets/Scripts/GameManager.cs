@@ -37,13 +37,20 @@ public class GameManager : MonoBehaviour
     public bool fixedRNGSeed = true;
     public int randomGenerationSeed = 42;
 
+    /// NEURAL NETWORK SETTINGS
+
+    public const int numberOfInputNeurons = 7; // Should match the number of snake inputs I pass into the neural network.
+    public const int numberOfOutputNeurons = 3;
+    public int numberOfHiddenLayers = 2;
+    public int numberOfHiddenLayerNeurons = 5;
+
     /// GENETIC ALGORITHM SETTINGS
 
     public bool parallelExecution = false; // Instead of running snake unity game objects which visually display the game, I run snake processes on multiple threads. Only show the final snake game.
     public int populationSize = 10;
     public int generationLimit = 15; // When to stop simulating and display the best candidate.
     public bool generationLimitEnabled = true;
-    public int numGenes = 10;
+    public int numGenes = 1000; // Should match the number required for the neural network.
     public float MutationRate = 0.01f;
     public float SelectionPercentage = 0.5f; // Percentage of population sorted by fitness to use for the next generation.
     public float elitistPopulationPercentage = 0.1f; // Percentage of population to fully preserve between generations.
@@ -95,6 +102,8 @@ public class GameManager : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        numGenes = numberOfInputNeurons * numberOfHiddenLayerNeurons +numberOfHiddenLayers * numberOfHiddenLayerNeurons * numberOfHiddenLayerNeurons + numberOfHiddenLayerNeurons * numberOfOutputNeurons;
+
         Time.fixedDeltaTime = fixedTimeStep;
         validateSceneSize();
         updateCamera();
@@ -195,6 +204,7 @@ public class GameManager : MonoBehaviour
                 generationTotalFitness = 0;
                 generationAverageFitness = 0;
                 generationsLowestFitness = 0;
+                numGenes = numberOfInputNeurons * numberOfHiddenLayerNeurons + numberOfHiddenLayers * numberOfHiddenLayerNeurons * numberOfHiddenLayerNeurons + numberOfHiddenLayerNeurons * numberOfOutputNeurons;
                 validateSceneSize();
                 updateCamera();
                 createInitialPopulation();

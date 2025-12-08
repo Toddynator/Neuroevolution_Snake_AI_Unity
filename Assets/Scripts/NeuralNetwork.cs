@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEditor.Rendering.Universal;
+using UnityEngine.InputSystem.Users;
 using UnityEngine.Serialization;
 using UnityEngine.UIElements;
 
@@ -22,6 +23,9 @@ using UnityEngine.UIElements;
  * numberOfInputNeurons*numberOfHiddenLayerNeurons + numberOfHiddenLayers*numberOfHiddenLayerNeurons*numberOfHiddenLayerNeurons + numberOfHiddenLayerNeurons*numberOfOutputNeurons;
  * 
  * My weights are in the range of -1.0f to 1.0f
+ * 
+ * INPUTS SHOULD BE IN THE RANGE FROM 0.0f TO 1.0f.
+ * The input range should match the Activation Function I use, in my case Sigmoid which gives a range from 0.0f to 1.0f.
  */
 
 public class NeuralNetwork
@@ -46,7 +50,7 @@ public class NeuralNetwork
     
 
 
-    public void Initialise(DNA dna, int numInputNeurons, int numOutputNerons, int numHiddenLayers, int numHiddenLayerNeurons)
+    public NeuralNetwork(DNA dna, int numInputNeurons, int numOutputNerons, int numHiddenLayers, int numHiddenLayerNeurons)
     {
         //// Initialisation network
 
@@ -55,7 +59,8 @@ public class NeuralNetwork
         numberOfHiddenLayers = numHiddenLayers;
         numberOfHiddenLayerNeurons = numHiddenLayerNeurons;
 
-        int outputLayerNumber = 1 + numberOfHiddenLayerNeurons;
+        int outputLayerNumber = 1 + numberOfHiddenLayers;
+        int totalLayers = 2 + numberOfHiddenLayers;
 
         // Calculate neurons per layer
         int[] neuronsPerLayer = new int[numberOfHiddenLayers+2];
@@ -83,26 +88,34 @@ public class NeuralNetwork
 
         // Set weights for every layer except the output layer, which doesn't need weights.
         int geneIndex = 0;
-        for (int layerNum = 0; layerNum < neuronsPerLayer.Length - 1; layerNum++)
+        weights = new float[totalLayers-1][][]; // Not needed for output layer
+        biases = new float[totalLayers][]; // Not needed for input layer, but I'm initialising it anyway otherwise it gets too confusing.
+        values = new float[totalLayers][];
+        for (int layerNum = 0; layerNum < neuronsPerLayer.Length ; layerNum++)
         {
+            bool finalLayer = layerNum == neuronsPerLayer.Length - 1;
             int numNeuronsCurrentLayer = neuronsPerLayer[layerNum];
-            int numNeuronsNextLayer = neuronsPerLayer[layerNum + 1];
 
             // Set the index of the neuron belonging to the layer
-            weights[layerNum] = new float[numNeuronsCurrentLayer][];
+
+            if (!finalLayer) { weights[layerNum] = new float[numNeuronsCurrentLayer][]; }
             biases[layerNum] = new float[numNeuronsCurrentLayer];
             values[layerNum] = new float[numNeuronsCurrentLayer];
             // Set the index of the neuron in the next layer
             for (int neuronNum = 0; neuronNum < numNeuronsCurrentLayer; neuronNum++)
             {
                 // Set Weights
-                weights[layerNum][neuronNum] = new float[numNeuronsNextLayer];
-                for (int connectionNum = 0; connectionNum < numNeuronsNextLayer; connectionNum++)
+                if (!finalLayer)
                 {
-                    // Use Genes for the value of the neuron connection weights
-                    // Modulus ensures it doesn't throw an error if not enough genes are created.
-                    weights[layerNum][neuronNum][connectionNum] = dna.genes[geneIndex % dna.genes.Length];
-                    geneIndex ++;
+                    int numNeuronsNextLayer = neuronsPerLayer[layerNum + 1];
+                    weights[layerNum][neuronNum] = new float[numNeuronsNextLayer];
+                    for (int connectionNum = 0; connectionNum < numNeuronsNextLayer; connectionNum++)
+                    {
+                        // Use Genes for the value of the neuron connection weights
+                        // Modulus ensures it doesn't throw an error if not enough genes are created.
+                        weights[layerNum][neuronNum][connectionNum] = dna.genes[geneIndex % dna.genes.Length];
+                        geneIndex++;
+                    }
                 }
 
                 // Set Biases & Values
@@ -150,5 +163,15 @@ public class NeuralNetwork
         // https://machinelearningmastery.com/a-gentle-introduction-to-sigmoid-function/
         // I used the sigmoid function for this.
         return 1.0f / (1.0f + MathF.Exp(-linearTransformationValue));
+    }
+
+    // Should be called before Calculating the Outputs / Forward Propogating.
+    public void SetInputs(float[] inputs)
+    {
+        Array.Copy(inputs, values[0], values[0].Length);
+    }
+    public float[] GetOutputs()
+    {
+        return values[values.Length - 1];
     }
 }

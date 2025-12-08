@@ -12,12 +12,15 @@ public class SnakeGame
     private Vector2Int applePosition;
     private Vector2Int snakeHeadStartPosition;
     private List<Vector2Int> segments;
-    public DNA dna; // How the Snake chooses its actions.
+    public DNA dna; // The weightings used in the neural network.
+    private NeuralNetwork neuralNetwork; // How the Snake chooses its actions.
 
     private System.Random random;
     private int randomGenerationSeed;
     private bool useFixedRNGSeed = false;
     private int growthPerApple = 1;
+    private int numHiddenLayers = 0;
+    private int numHiddenLayerNeurons = 0;
 
     /// MOVEMENT
 
@@ -28,7 +31,10 @@ public class SnakeGame
     /// STATS
 
     public int distanceToObstacleInFront;
+    public int distanceToLeftObstacle;
+    public int distanceToRightObstacle;
     public float distanceToApple; // Since I want to consider distance even if it isn't in line of sight, this is a float (To account for diagonals)
+    public Vector2 directionToApple;
     public bool seeApple;
     public bool alive = true;
     private bool diedToCollision = false;
@@ -53,6 +59,12 @@ public class SnakeGame
             random = new System.Random();
         }
 
+        /// NEURAL NETWORK
+
+        numHiddenLayers = gameManager.numberOfHiddenLayers;
+        numHiddenLayerNeurons = gameManager.numberOfHiddenLayerNeurons;
+        neuralNetwork = new NeuralNetwork(newDNA, GameManager.numberOfInputNeurons, GameManager.numberOfOutputNeurons, numHiddenLayers, numHiddenLayerNeurons);
+
         /// SETUP THE WALLS 
 
         gridSize = new Vector2Int((int)gameManager.SceneSize.x, (int)gameManager.SceneSize.y);
@@ -74,7 +86,6 @@ public class SnakeGame
         segments.Add(snakeHeadStartPosition);
         spawnApple();
     }
-
     public void Restart(DNA newDNA)
     {
         if (useFixedRNGSeed)
@@ -82,6 +93,7 @@ public class SnakeGame
             random = new System.Random(randomGenerationSeed);
         }
         dna = newDNA;
+        neuralNetwork = new NeuralNetwork(newDNA, GameManager.numberOfInputNeurons, GameManager.numberOfOutputNeurons, numHiddenLayers, numHiddenLayerNeurons);
 
         // Revert Stats
         direction = Vector2Int.right;
@@ -124,7 +136,8 @@ public class SnakeGame
 
         //// MOVE SNAKE
 
-        updateDirection();
+        determineTurnDirection();
+        direction = determineDirection(turnDirection);
 
         /// Update Segments
         // Only need to remove the last segment of the snake.
@@ -163,30 +176,73 @@ public class SnakeGame
 
         //// SNAKE SENSES ~ What it sees
 
-        Vector2 differenceAppleAndSnakeVector = applePosition - segments[0];
-        distanceToApple = differenceAppleAndSnakeVector.magnitude;
+        directionToApple = applePosition - segments[0];
+        distanceToApple = directionToApple.magnitude;
+
+        /// SCAN FOR OBSTACLES
 
         seeApple = false;
         Vector2Int currentScanPosition = segments[0];
+        Vector2Int currentLeftScanPosition = segments[0];
+        Vector2Int currentRightScanPosition = segments[0];
+        Vector2Int leftScanDirection = determineDirection(-1);
+        Vector2Int rightScanDirection = determineDirection(1);
+        bool frontHit = false;
+        bool leftHit = false;
+        bool rightHit = false;
         if (currentScanPosition.x >= gridSize.x - 1 || currentScanPosition.x <= 0 || currentScanPosition.y <= 0 || currentScanPosition.y >= gridSize.y - 1)
         {
             distanceToObstacleInFront = 0;
         }
         else
         {
+            // Will scan for furthest possible distance snake can be from a tile
             for (int i = 0; i < Mathf.Max(gridSize.x, gridSize.y); i++)
             {
-                currentScanPosition += direction;
-                TileType scannedTile = grid[currentScanPosition.x, currentScanPosition.y];
-                if (scannedTile == TileType.Apple)
+                // Exit prematurely if all scans are complete
+                if (frontHit && leftHit && rightHit) { break; }
+
+                /// FORWARD SCAN
+                if (!frontHit)
                 {
-                    seeApple = true;
+                    currentScanPosition += direction;
+                    TileType scannedTile = grid[currentScanPosition.x, currentScanPosition.y];
+                    if (scannedTile == TileType.Apple)
+                    {
+                        seeApple = true;
+                    }
+                    else if (scannedTile != TileType.Empty)
+                    {
+                        Vector2Int difference = currentScanPosition - segments[0];
+                        distanceToObstacleInFront = (int)difference.magnitude;
+                        frontHit = true;
+                    }
                 }
-                else if (scannedTile != TileType.Empty)
+
+                /// LEFT SCAN
+                if (!leftHit)
                 {
-                    Vector2Int difference = currentScanPosition - segments[0];
-                    distanceToObstacleInFront = (int)difference.magnitude;
-                    break;
+                    currentLeftScanPosition += leftScanDirection;
+                    TileType scannedLeftTile = grid[currentLeftScanPosition.x, currentLeftScanPosition.y];
+                    if (scannedLeftTile != TileType.Empty)
+                    {
+                        Vector2Int difference = currentLeftScanPosition - segments[0];
+                        distanceToLeftObstacle = (int)difference.magnitude;
+                        leftHit = true;
+                    }
+                }
+
+                /// RIGHT SCAN
+                if (!rightHit)
+                {
+                    currentRightScanPosition += rightScanDirection;
+                    TileType scannedRightTile = grid[currentRightScanPosition.x, currentRightScanPosition.y];
+                    if (scannedRightTile != TileType.Empty)
+                    {
+                        Vector2Int difference = currentRightScanPosition - segments[0];
+                        distanceToRightObstacle = (int)difference.magnitude;
+                        rightHit = true;
+                    }
                 }
             }
         }
@@ -243,48 +299,95 @@ public class SnakeGame
         if (numberOfApplesConsumed > 0) { averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed; }
     }
 
-    private void updateDirection()
+    private void determineTurnDirection()
     {
-        // Turn snake ~ Currently use Genes as a list of inputs.
-        turnDirection = dna.genes[numOfMoves % dna.genes.Length];
-        if (turnDirection == -1) // Turn Left
+        /// NEURAL NETWORK
+
+        float seesAppleFloat = seeApple ? 1.0f : 0.0f;
+        Vector2 normalizedAppleDirection = directionToApple.normalized;
+        // Convert into range 0 to 1.
+        float inputAppleDirectionX = (direction.x + 1.0f) / 2.0f;
+        float inputAppleDirectionY = (direction.y + 1.0f) / 2.0f;
+        // SHOULD MATCH THE NUMBER OF INPUT NEURONS SET IN THE NEURAL NETWORK
+        // If input neurons don't match, update GameManger constants. (Not meant to be modifiable during runtime).
+        float[] snakeInputs = new float[]
+        {
+            distanceToApple,
+            seesAppleFloat,
+            inputAppleDirectionX,
+            inputAppleDirectionY,
+            distanceToObstacleInFront,
+            distanceToLeftObstacle,
+            distanceToRightObstacle
+        };
+        neuralNetwork.SetInputs(snakeInputs);
+        neuralNetwork.CalculateOutputs();
+        float[] outputs = neuralNetwork.GetOutputs();
+
+        // Need to compare probabilities calculated for the 3 possible directions, take the most likely option.
+        if (outputs[0] > outputs[1] && outputs[0] > outputs[2])
+        {
+            // TURN LEFT
+            turnDirection = -1;
+        }
+        else if (outputs[1] > outputs[2])
+        {
+            // TURN FORWARD
+            turnDirection = 0;
+        }
+        else
+        {
+            // TURN RIGHT
+            turnDirection = 1;
+        }
+    }
+
+    private Vector2Int determineDirection(int turnInput)
+    {
+        Vector2Int newDirection = Vector2Int.zero;
+        if (turnInput == -1) // Turn Left
         {
             if (direction == Vector2Int.up)
             {
-                direction = Vector2Int.left;
+                newDirection = Vector2Int.left;
             }
             else if (direction == Vector2Int.left)
             {
-                direction = Vector2Int.down;
+                newDirection = Vector2Int.down;
             }
             else if (direction == Vector2Int.down)
             {
-                direction = Vector2Int.right;
+                newDirection = Vector2Int.right;
             }
             else
             {
-                direction = Vector2Int.up;
+                newDirection = Vector2Int.up;
             }
         }
-        else if (turnDirection == 1) // Turn Right
+        else if (turnInput == 1) // Turn Right
         {
             if (direction == Vector2.up)
             {
-                direction = Vector2Int.right;
+                newDirection = Vector2Int.right;
             }
             else if (direction == Vector2.right)
             {
-                direction = Vector2Int.down;
+                newDirection = Vector2Int.down;
             }
             else if (direction == Vector2.down)
             {
-                direction = Vector2Int.left;
+                newDirection = Vector2Int.left;
             }
             else
             {
-                direction = Vector2Int.up;
+                newDirection = Vector2Int.up;
             }
         }
+        else
+        {
+            return direction;
+        }
+        return newDirection;
     }
 
     public float CalculateFitness()
