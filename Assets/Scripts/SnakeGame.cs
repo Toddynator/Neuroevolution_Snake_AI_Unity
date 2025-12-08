@@ -301,28 +301,42 @@ public class SnakeGame
 
     private void determineTurnDirection()
     {
-        /// NEURAL NETWORK
+        //// NEURAL NETWORK
+        // SHOULD MATCH THE NUMBER OF INPUT NEURONS SET IN THE NEURAL NETWORK
+        // If input neurons don't match, update GameManager constants. (Not meant to be modifiable during runtime).
+
+        /// CONVERT INPUTS INTO RANGE 0.0f to 1.0f
+        
+        // Use max possible distance to convert any distance variables into range
+        float maxDistance = Mathf.Max(gridSize.x, gridSize.y);
 
         float seesAppleFloat = seeApple ? 1.0f : 0.0f;
         Vector2 normalizedAppleDirection = directionToApple.normalized;
-        // Convert into range 0 to 1.
-        float inputAppleDirectionX = (direction.x + 1.0f) / 2.0f;
-        float inputAppleDirectionY = (direction.y + 1.0f) / 2.0f;
-        // SHOULD MATCH THE NUMBER OF INPUT NEURONS SET IN THE NEURAL NETWORK
-        // If input neurons don't match, update GameManger constants. (Not meant to be modifiable during runtime).
+        float inputAppleDirectionX = (normalizedAppleDirection.x + 1.0f) / 2.0f;
+        float inputAppleDirectionY = (normalizedAppleDirection.y + 1.0f) / 2.0f;
+        float distanceToAppleInput = distanceToApple / maxDistance;
+        float distanceToFrontObstacleInput = distanceToObstacleInFront / maxDistance;
+        float distanceToLeftObstacleInput = distanceToLeftObstacle / maxDistance;
+        float distanceToRightObstacleInput = distanceToRightObstacle / maxDistance;
+
+        /// SET NEURAL NETWORK INPUTS
+
         float[] snakeInputs = new float[]
         {
-            distanceToApple,
+            distanceToAppleInput,
             seesAppleFloat,
             inputAppleDirectionX,
             inputAppleDirectionY,
-            distanceToObstacleInFront,
-            distanceToLeftObstacle,
-            distanceToRightObstacle
+            distanceToFrontObstacleInput,
+            distanceToLeftObstacleInput,
+            distanceToRightObstacleInput
         };
+
         neuralNetwork.SetInputs(snakeInputs);
         neuralNetwork.CalculateOutputs();
         float[] outputs = neuralNetwork.GetOutputs();
+
+        //Debug.Log("NEURAL NETWORK OUTPUTS: " + outputs[0] + " " + outputs[1] + " " + outputs[2]);
 
         // Need to compare probabilities calculated for the 3 possible directions, take the most likely option.
         if (outputs[0] > outputs[1] && outputs[0] > outputs[2])
@@ -366,15 +380,15 @@ public class SnakeGame
         }
         else if (turnInput == 1) // Turn Right
         {
-            if (direction == Vector2.up)
+            if (direction == Vector2Int.up)
             {
                 newDirection = Vector2Int.right;
             }
-            else if (direction == Vector2.right)
+            else if (direction == Vector2Int.right)
             {
                 newDirection = Vector2Int.down;
             }
-            else if (direction == Vector2.down)
+            else if (direction == Vector2Int.down)
             {
                 newDirection = Vector2Int.left;
             }

@@ -1,11 +1,13 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using UnityEditor.Rendering.Universal;
 using UnityEngine.InputSystem.Users;
 using UnityEngine.Serialization;
 using UnityEngine.UIElements;
+using UnityEngine;
 
 /*
  NEURAL NETWORK
@@ -39,9 +41,9 @@ public class NeuralNetwork
 
     /// NEURAL NETWORK
 
-    private float[][][] weights; // Layer Index, Neuron Index in current Layer, Neuron Index in the Next Layer. Represents connections, stores weight for each connection. Doesn't need output layer.
-    private float[][] biases; // Bias for each neuron. Layer, Neuron in Layer.
-    private float[][] values; // The stored / calculated value for each neuron. Layer, Neuron in Layer.
+    private float[][][] weights; // Layer Index, Neuron Index in current Layer, Neuron Index in the Next Layer. Represents connections, stores weight for each connection. Input Layer to final Hidden Layer
+    private float[][] biases; // Bias for each neuron. Layer, Neuron in Layer. First Hidden Layer to Output Layer.
+    private float[][] values; // The stored / calculated value for each neuron. Layer, Neuron in Layer. All Layers.
 
 
 
@@ -132,9 +134,9 @@ public class NeuralNetwork
         // The values are calculated for every neuron in a layer before moving to the next layer. Each layer depends
         // on values from the previous layer. The Input layer should be set externally before calling this function.
 
-        for (int layerNum = 1; layerNum < weights.Length; layerNum++)
+        for (int layerNum = 1; layerNum < values.Length; layerNum++)
         {
-            int numNeuronsCurrentLayer = weights[layerNum].Length;
+            int numNeuronsCurrentLayer = values[layerNum].Length;
             for (int neuronNum = 0; neuronNum < numNeuronsCurrentLayer; neuronNum++)
             {
                 values[layerNum][neuronNum] = activationFunction(linearTransformation(layerNum, neuronNum));
