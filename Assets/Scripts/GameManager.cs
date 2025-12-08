@@ -81,7 +81,7 @@ public class GameManager : MonoBehaviour
     private bool GameSettingsUIEnabled = false;
     private bool TrainingProgressUIEnabled = true;
     private string inputPop = "";
-    private string inputGeneNum = "";
+    //private string inputGeneNum = "";
     private string inputGenLimit = "";
     private string inputTimeStep = "";
     private string inputAppleGrowth = "";
@@ -91,6 +91,8 @@ public class GameManager : MonoBehaviour
     private string inputRNGSeed = "";
     private string inputSceneX = "";
     private string inputSceneY = "";
+    private string inputHiddenLayerNum = "";
+    private string inputHiddenLayerNeuronNum = "";
 
 
 
@@ -102,13 +104,18 @@ public class GameManager : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        numGenes = numberOfInputNeurons * numberOfHiddenLayerNeurons +numberOfHiddenLayers * numberOfHiddenLayerNeurons * numberOfHiddenLayerNeurons + numberOfHiddenLayerNeurons * numberOfOutputNeurons;
+        numGenes = calculateNumberOfGenesForNeuralNetwork();
 
         Time.fixedDeltaTime = fixedTimeStep;
         validateSceneSize();
         updateCamera();
         createInitialPopulation();
         createSnake();
+    }
+
+    private int calculateNumberOfGenesForNeuralNetwork()
+    {
+        return numberOfInputNeurons * numberOfHiddenLayerNeurons + numberOfHiddenLayers * numberOfHiddenLayerNeurons * numberOfHiddenLayerNeurons + numberOfHiddenLayerNeurons * numberOfOutputNeurons;
     }
 
     private void createInitialPopulation()
@@ -204,7 +211,7 @@ public class GameManager : MonoBehaviour
                 generationTotalFitness = 0;
                 generationAverageFitness = 0;
                 generationsLowestFitness = 0;
-                numGenes = numberOfInputNeurons * numberOfHiddenLayerNeurons + numberOfHiddenLayers * numberOfHiddenLayerNeurons * numberOfHiddenLayerNeurons + numberOfHiddenLayerNeurons * numberOfOutputNeurons;
+                numGenes = calculateNumberOfGenesForNeuralNetwork();
                 validateSceneSize();
                 updateCamera();
                 createInitialPopulation();
@@ -290,11 +297,45 @@ public class GameManager : MonoBehaviour
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
         GUI.color = defaultColor;
 
+        /// NEURAL NETWORK SETTINGS
+
+        GUI.Label(widgetRect, "Neural Network", header);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+        GUI.Label(widgetRect, "Number of Hidden Layers: " + numberOfHiddenLayers);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.enabled = !trainingStarted;
+        GUILayout.BeginArea(widgetRect);
+        inputHiddenLayerNum = GUILayout.TextField(inputHiddenLayerNum);
+        if (int.TryParse(inputHiddenLayerNum, out inputInt))
+        {
+            numberOfHiddenLayers = inputInt;
+        }
+        GUILayout.EndArea();
+        GUI.enabled = true;
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+        GUI.Label(widgetRect, "Neurons per Hidden Layer: " + numberOfHiddenLayerNeurons);
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.enabled = !trainingStarted;
+        GUILayout.BeginArea(widgetRect);
+        inputHiddenLayerNeuronNum = GUILayout.TextField(inputHiddenLayerNeuronNum);
+        if (int.TryParse(inputHiddenLayerNeuronNum, out inputInt))
+        {
+            numberOfHiddenLayerNeurons = inputInt;
+        }
+        GUILayout.EndArea();
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.enabled = true;
+
         /// SNAKE GAME SETTINGS
 
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.3f;
         if (GameSettingsUIEnabled)
         {
+            GUI.Label(widgetRect, "Snake Settings", header);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
             GUI.enabled = !trainingStarted;
             GUILayout.BeginArea(widgetRect);
             parallelExecution = GUILayout.Toggle(parallelExecution, "Parallel Execution");
@@ -393,16 +434,16 @@ public class GameManager : MonoBehaviour
 
             GUI.Label(widgetRect, "Number of Genes: " + numGenes);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
-            GUI.enabled = !trainingStarted; // DISABLE BEGIN
-            GUILayout.BeginArea(widgetRect);
-            inputGeneNum = GUILayout.TextField(inputGeneNum);
-            if (int.TryParse(inputGeneNum, out inputInt))
-            {
-                numGenes = inputInt;
-            }
-            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
-            GUILayout.EndArea();
-            GUI.enabled = true; // DISABLE END
+            //GUI.enabled = !trainingStarted; // DISABLE BEGIN
+            //GUILayout.BeginArea(widgetRect);
+            //inputGeneNum = GUILayout.TextField(inputGeneNum);
+            //if (int.TryParse(inputGeneNum, out inputInt))
+            //{
+            //    numGenes = inputInt;
+            //}
+            //widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            //GUILayout.EndArea();
+            //GUI.enabled = true; // DISABLE END
 
             GUI.Label(widgetRect, "Mutation Rate: " + MutationRate);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
@@ -489,13 +530,22 @@ public class GameManager : MonoBehaviour
                 GUI.Label(widgetRect, "Apples Eaten: " + displayedSnakeGame.GetSnakeGame().numberOfApplesConsumed);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "DistanceToObstacle: " + displayedSnakeGame.GetSnakeGame().distanceToObstacleInFront);
-                widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
-
                 GUI.Label(widgetRect, "Sees Apple: " + displayedSnakeGame.GetSnakeGame().seeApple);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
                 GUI.Label(widgetRect, "DistanceToApple: " + displayedSnakeGame.GetSnakeGame().distanceToApple);
+                widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+                GUI.Label(widgetRect, "DirectionToApple: " + displayedSnakeGame.GetSnakeGame().directionToApple);
+                widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+                GUI.Label(widgetRect, "DistanceToFrontObstacle: " + displayedSnakeGame.GetSnakeGame().distanceToObstacleInFront);
+                widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+                GUI.Label(widgetRect, "DistanceToLeftObstacle: " + displayedSnakeGame.GetSnakeGame().distanceToLeftObstacle);
+                widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+                GUI.Label(widgetRect, "DistanceToRightObstacle: " + displayedSnakeGame.GetSnakeGame().distanceToRightObstacle);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             }
         }
