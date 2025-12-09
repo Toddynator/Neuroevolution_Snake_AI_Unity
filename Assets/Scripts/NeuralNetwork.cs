@@ -75,7 +75,7 @@ public class NeuralNetwork
         // the number of genes to use.
 
         /*int numGenes = dna.genes.Length;
-        int genesRequired = numberOfInputNeurons*numberOfHiddenLayerNeurons + numberOfHiddenLayers*numberOfHiddenLayerNeurons*numberOfHiddenLayerNeurons + numberOfHiddenLayerNeurons*numberOfOutputNeurons;
+        int genesRequired = CalculateNumberOfGenesForNeuralNetwork()
         if (numGenes < genesRequired)
         {
             
@@ -121,6 +121,15 @@ public class NeuralNetwork
                 values[layerNum][neuronNum] = 0.0f;
             }
         }
+    }
+
+    static public int CalculateNumberOfGenesForNeuralNetwork(int numHiddenLayers, int numHiddenLayerNeurons, int numInputNeurons, int numOutputNeurons)
+    {
+        if (numHiddenLayers > 0)
+        {
+            return numInputNeurons * numHiddenLayerNeurons + numHiddenLayers * numHiddenLayerNeurons * numHiddenLayerNeurons + numHiddenLayerNeurons * numOutputNeurons;
+        }
+        return numInputNeurons * numOutputNeurons;
     }
 
     // Call on each frame, set inputs before calling.

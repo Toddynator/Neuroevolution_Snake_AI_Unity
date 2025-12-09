@@ -104,18 +104,13 @@ public class GameManager : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        numGenes = calculateNumberOfGenesForNeuralNetwork();
+        numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(numberOfHiddenLayers, numberOfHiddenLayerNeurons, numberOfInputNeurons, numberOfOutputNeurons);
 
         Time.fixedDeltaTime = fixedTimeStep;
         validateSceneSize();
         updateCamera();
         createInitialPopulation();
         createSnake();
-    }
-
-    private int calculateNumberOfGenesForNeuralNetwork()
-    {
-        return numberOfInputNeurons * numberOfHiddenLayerNeurons + numberOfHiddenLayers * numberOfHiddenLayerNeurons * numberOfHiddenLayerNeurons + numberOfHiddenLayerNeurons * numberOfOutputNeurons;
     }
 
     private void createInitialPopulation()
@@ -211,7 +206,7 @@ public class GameManager : MonoBehaviour
                 generationTotalFitness = 0;
                 generationAverageFitness = 0;
                 generationsLowestFitness = 0;
-                numGenes = calculateNumberOfGenesForNeuralNetwork();
+                numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(numberOfHiddenLayers, numberOfHiddenLayerNeurons, numberOfInputNeurons, numberOfOutputNeurons);
                 validateSceneSize();
                 updateCamera();
                 createInitialPopulation();
