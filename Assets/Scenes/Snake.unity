@@ -378,6 +378,8 @@ MonoBehaviour:
   tailColor: {r: 0, g: 0.5, b: 0, a: 1}
   fixedRNGSeed: 1
   randomGenerationSeed: 42
+  numberOfHiddenLayers: 3
+  numberOfHiddenLayerNeurons: 120
   parallelExecution: 1
   populationSize: 100
   generationLimit: 3000
