@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Burst.CompilerServices;
 using UnityEngine;
 
 public class SnakeGame
@@ -453,20 +454,14 @@ public class SnakeGame
         return newDirection;
     }
 
-    public float CalculateFitness()
+    public float CalculateFitness(float SCORE_PER_APPLE, float SCORE_MOVES_MULTIPLIER, float SCORE_PROGRESS_TO_NEXT_APPLE_MULTIPLIER, float SCORE_DECAY_RATE)
     {
         float score = 0.0f;
-
-        const float SCORE_PER_APPLE = 10.0f;
-        const float SCORE_MOVES_MULTIPLIER = 2.0f; // I want to reward optimal routes
-        const float SCORE_COLLISION_PENALTY_MULTIPLIER = 0.9f;
-        const float SCORE_DECAY_RATE = 0.01f; // Should improve this to be based on maximum number of moves possible in a scene.
         float maxPossibleDistanceToApple = gridSize.magnitude;
 
         score += numberOfApplesConsumed * SCORE_PER_APPLE; // Primarily reward based on number of apples gained
-        score += SCORE_PER_APPLE * (1.0f - distanceToApple / maxPossibleDistanceToApple); // Reward getting closer to the apple with each generation
-        //if (diedToCollision) { score *= SCORE_COLLISION_PENALTY_MULTIPLIER; } // Penalise the snake killing itself so that the generations don't get trapped on DNA that involves moving into a wall
-        score = score * Mathf.Exp(numOfMovesWhenGreatestLengthReached * -(SCORE_DECAY_RATE)) * SCORE_MOVES_MULTIPLIER; // Should reward / penalise for taking too many moves to get each apple.
+        score += SCORE_PROGRESS_TO_NEXT_APPLE_MULTIPLIER * SCORE_PER_APPLE * (1.0f - distanceToApple / maxPossibleDistanceToApple); // Reward getting closer to the apple with each generation
+        //score = score * Mathf.Exp(numOfMovesWhenGreatestLengthReached * -(SCORE_DECAY_RATE)) * SCORE_MOVES_MULTIPLIER; // Should reward / penalise for taking too many moves to get each apple.
 
         dna.fitness = score;
 

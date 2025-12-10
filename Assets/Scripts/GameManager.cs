@@ -57,6 +57,10 @@ public class GameManager : MonoBehaviour
 
     /// GENETIC ALGORITHM
 
+    public float scorePerApple = 10.0f;
+    public float scoreProgressToNextAppleMultiplier = 1.0f;
+    public float scoreMovesMultiplier = 1.0f;
+    public float scoreDecayRate = 0.01f;
     CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(); // For stopping threads
     private Task parallelTrainingTask;
     private bool parallelTaskRunning = false;
@@ -78,9 +82,11 @@ public class GameManager : MonoBehaviour
     private float generationsLowestFitness = 0;
 
     /// UI
-    private bool GeneticAlgorithmUIEnabled = true;
-    private bool GameSettingsUIEnabled = false;
-    private bool TrainingProgressUIEnabled = true;
+    private bool geneticAlgorithmUIEnabled = true;
+    private bool gameSettingsUIEnabled = false;
+    private bool trainingProgressUIEnabled = true;
+    private bool neuralNetworkUIEnabled = true;
+    private bool fitnessSettingsUIEnabled = true;
     private string inputPop = "";
     //private string inputGeneNum = "";
     private string inputGenLimit = "";
@@ -94,6 +100,10 @@ public class GameManager : MonoBehaviour
     private string inputSceneY = "";
     private string inputHiddenLayerNum = "";
     private string inputHiddenLayerNeuronNum = "";
+    private string inputScoreApple = "";
+    private string inputScoreAppleProgressMultiplier = "";
+    private string inputScoreMoveMultiplier = "";
+    private string inputScoreDecayRate = "";
 
 
 
@@ -299,61 +309,81 @@ public class GameManager : MonoBehaviour
 
         Rect tabButtonsWidget = new Rect(widgetRect.x, widgetRect.y, widgetRect.width*0.33f, widgetRect.height*0.7f);
         Color defaultColor = GUI.color;
-        GUI.color = GameSettingsUIEnabled ? defaultColor : Color.red;
+
+        GUI.color = gameSettingsUIEnabled ? defaultColor : Color.red;
         if (GUI.Button(tabButtonsWidget, "Game"))
         {
-            GameSettingsUIEnabled = !GameSettingsUIEnabled;
+            gameSettingsUIEnabled = !gameSettingsUIEnabled;
         }
         tabButtonsWidget.x += tabButtonsWidget.width;
-        GUI.color = GeneticAlgorithmUIEnabled ? defaultColor : Color.red;
+        GUI.color = geneticAlgorithmUIEnabled ? defaultColor : Color.red;
         if (GUI.Button(tabButtonsWidget, "GE"))
         {
-            GeneticAlgorithmUIEnabled = !GeneticAlgorithmUIEnabled;
+            geneticAlgorithmUIEnabled = !geneticAlgorithmUIEnabled;
         }
         tabButtonsWidget.x += tabButtonsWidget.width;
-        GUI.color = TrainingProgressUIEnabled ? defaultColor : Color.red;
+        GUI.color = trainingProgressUIEnabled ? defaultColor : Color.red;
         if (GUI.Button(tabButtonsWidget, "Training"))
         {
-            TrainingProgressUIEnabled = !TrainingProgressUIEnabled;
+            trainingProgressUIEnabled = !trainingProgressUIEnabled;
         }
-        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+        // NEXT ROW
+        tabButtonsWidget.x = widgetRect.x;
+        tabButtonsWidget.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        GUI.color = fitnessSettingsUIEnabled ? defaultColor : Color.red;
+        if (GUI.Button(tabButtonsWidget, "Fitness"))
+        {
+            fitnessSettingsUIEnabled = !fitnessSettingsUIEnabled;
+        }
+        tabButtonsWidget.x += tabButtonsWidget.width;
+        GUI.color = neuralNetworkUIEnabled ? defaultColor : Color.red;
+        if (GUI.Button(tabButtonsWidget, "Network"))
+        {
+            neuralNetworkUIEnabled = !neuralNetworkUIEnabled;
+        }
+        tabButtonsWidget.x += tabButtonsWidget.width;
+        widgetRect.y = tabButtonsWidget.y + widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.7f;
         GUI.color = defaultColor;
 
         /// NEURAL NETWORK SETTINGS
 
-        GUI.Label(widgetRect, "Neural Network", header);
-        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
-
-        GUI.Label(widgetRect, "Number of Hidden Layers: " + numberOfHiddenLayers);
-        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
-        GUI.enabled = !trainingStarted;
-        GUILayout.BeginArea(widgetRect);
-        inputHiddenLayerNum = GUILayout.TextField(inputHiddenLayerNum);
-        if (int.TryParse(inputHiddenLayerNum, out inputInt))
+        if (neuralNetworkUIEnabled)
         {
-            numberOfHiddenLayers = inputInt;
-        }
-        GUILayout.EndArea();
-        GUI.enabled = true;
-        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUI.Label(widgetRect, "Neural Network", header);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-        GUI.Label(widgetRect, "Neurons per Hidden Layer: " + numberOfHiddenLayerNeurons);
-        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
-        GUI.enabled = !trainingStarted;
-        GUILayout.BeginArea(widgetRect);
-        inputHiddenLayerNeuronNum = GUILayout.TextField(inputHiddenLayerNeuronNum);
-        if (int.TryParse(inputHiddenLayerNeuronNum, out inputInt))
-        {
-            numberOfHiddenLayerNeurons = inputInt;
+            GUI.Label(widgetRect, "Number of Hidden Layers: " + numberOfHiddenLayers);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUI.enabled = !trainingStarted;
+            GUILayout.BeginArea(widgetRect);
+            inputHiddenLayerNum = GUILayout.TextField(inputHiddenLayerNum);
+            if (int.TryParse(inputHiddenLayerNum, out inputInt))
+            {
+                numberOfHiddenLayers = inputInt;
+            }
+            GUILayout.EndArea();
+            GUI.enabled = true;
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+            GUI.Label(widgetRect, "Neurons per Hidden Layer: " + numberOfHiddenLayerNeurons);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUI.enabled = !trainingStarted;
+            GUILayout.BeginArea(widgetRect);
+            inputHiddenLayerNeuronNum = GUILayout.TextField(inputHiddenLayerNeuronNum);
+            if (int.TryParse(inputHiddenLayerNeuronNum, out inputInt))
+            {
+                numberOfHiddenLayerNeurons = inputInt;
+            }
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUI.enabled = true;
         }
-        GUILayout.EndArea();
-        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
-        GUI.enabled = true;
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
 
         /// SNAKE GAME SETTINGS
 
-        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.3f;
-        if (GameSettingsUIEnabled)
+        if (gameSettingsUIEnabled)
         {
             GUI.Label(widgetRect, "Snake Settings", header);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
@@ -435,7 +465,7 @@ public class GameManager : MonoBehaviour
 
         /// GENETIC ALGORITHM SETTINGS
 
-        if (GeneticAlgorithmUIEnabled)
+        if (geneticAlgorithmUIEnabled)
         {
             GUI.Label(widgetRect, "Genetic Algorithm", header);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
@@ -517,12 +547,67 @@ public class GameManager : MonoBehaviour
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+            
+        }
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
+
+        /// FITNESS SETTINGS
+
+        if (fitnessSettingsUIEnabled)
+        {
+            GUI.Label(widgetRect, "Fitness Settings", header);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+            GUI.Label(widgetRect, "Score per Apple: " + scorePerApple);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputScoreApple = GUILayout.TextField(inputScoreApple);
+            if (float.TryParse(inputScoreApple, out inputFloat))
+            {
+                scorePerApple = inputFloat;
+            }
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+            GUI.Label(widgetRect, "Score Apple Progress Multiplier: " + scoreProgressToNextAppleMultiplier);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputScoreAppleProgressMultiplier = GUILayout.TextField(inputScoreAppleProgressMultiplier);
+            if (float.TryParse(inputScoreAppleProgressMultiplier, out inputFloat))
+            {
+                scoreProgressToNextAppleMultiplier = inputFloat;
+            }
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+            GUI.Label(widgetRect, "Score Moves Multiplier: " + scoreMovesMultiplier);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputScoreMoveMultiplier = GUILayout.TextField(inputScoreMoveMultiplier);
+            if (float.TryParse(inputScoreMoveMultiplier, out inputFloat))
+            {
+                scoreMovesMultiplier = inputFloat;
+            }
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+            GUI.Label(widgetRect, "Score Decay Rate: " + scoreDecayRate);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUILayout.BeginArea(widgetRect);
+            inputScoreDecayRate = GUILayout.TextField(inputScoreDecayRate);
+            if (float.TryParse(inputScoreDecayRate, out inputFloat))
+            {
+                scoreDecayRate = inputFloat;
+            }
+            GUILayout.EndArea();
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
         }
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
 
         /// TRAINING STATISTICS
 
-        if (TrainingProgressUIEnabled)
+        if (trainingProgressUIEnabled)
         {
             GUI.Label(widgetRect, "Training Progress", header);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
@@ -545,7 +630,7 @@ public class GameManager : MonoBehaviour
                 GUI.Label(widgetRect, "Snake Statistics", header);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                displayedSnakeGame.GetSnakeGame().CalculateFitness();
+                displayedSnakeGame.GetSnakeGame().CalculateFitness(scorePerApple, scoreMovesMultiplier, scoreProgressToNextAppleMultiplier, scoreDecayRate);
                 GUI.Label(widgetRect, "Fitness: " + displayedSnakeGame.GetSnakeGame().dna.fitness);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
@@ -571,6 +656,7 @@ public class GameManager : MonoBehaviour
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             }
         }
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
     }
 
     // This is ideal for running the snake game when visually displaying as I can control the timestep.
@@ -640,7 +726,7 @@ public class GameManager : MonoBehaviour
                 {
                     game.Update();
                 }
-                population[i].fitness = game.CalculateFitness();
+                population[i].fitness = game.CalculateFitness(scorePerApple, scoreMovesMultiplier, scoreProgressToNextAppleMultiplier, scoreDecayRate);
             }
         });
         if (cancellationTokenSource.Token.IsCancellationRequested) { return; }
@@ -678,7 +764,7 @@ public class GameManager : MonoBehaviour
             if (simulationTerminated == false)
             {          
                 if (currentSnake == 0) { generationsLowestFitness = population[0].fitness; }
-                population[currentSnake].fitness = displayedSnakeGame.GetSnakeGame().CalculateFitness();
+                population[currentSnake].fitness = displayedSnakeGame.GetSnakeGame().CalculateFitness(scorePerApple, scoreMovesMultiplier, scoreProgressToNextAppleMultiplier, scoreDecayRate);
                 // Update statistics
                 generationsBestFitness = MathF.Max(population[currentSnake].fitness, generationsBestFitness);
                 generationsLowestFitness = MathF.Min(population[currentSnake].fitness, generationsLowestFitness);
