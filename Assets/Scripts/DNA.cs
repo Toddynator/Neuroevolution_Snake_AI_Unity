@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Unity.Mathematics;
 using UnityEngine;
 using static UnityEngine.GraphicsBuffer;
@@ -52,6 +53,34 @@ public class DNA
         copy.snakeNumber = snakeNumber;
         copy.mostApplesEaten = mostApplesEaten;
         return copy;
+    }
+
+    public void Serialize(StreamWriter streamWriter)
+    {
+        streamWriter.WriteLine(fitness.ToString());
+        streamWriter.WriteLine(generationNumber.ToString());
+        streamWriter.WriteLine(snakeNumber.ToString());
+        streamWriter.WriteLine(mostApplesEaten.ToString());
+
+        streamWriter.WriteLine(genes.Length);
+        foreach (float gene in genes)
+        {
+            streamWriter.WriteLine(gene.ToString());
+        }
+    }
+    public void Deserialize(StreamReader streamReader)
+    {
+        fitness = float.Parse(streamReader.ReadLine());
+        generationNumber = int.Parse(streamReader.ReadLine());
+        snakeNumber = int.Parse(streamReader.ReadLine());
+        mostApplesEaten = int.Parse(streamReader.ReadLine());
+
+        int numberOfGenes = int.Parse(streamReader.ReadLine());
+        genes = new float[numberOfGenes];
+        for(int i = 0; i < numberOfGenes; i++)
+        {
+            genes[i] = float.Parse(streamReader.ReadLine());
+        }
     }
 
     public DNA Crossover (DNA otherParent, System.Random random)

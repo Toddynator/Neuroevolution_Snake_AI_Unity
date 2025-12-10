@@ -91,6 +91,7 @@ public class GameManager : MonoBehaviour
     private float generationsLowestFitness = 0;
     private bool pauseDisplayedGame = false;
     private int mostApplesEaten = 0;
+    private bool displayBestDNA = false; // For overwriting training and just displaying the best dna
 
     /// UI
     private bool geneticAlgorithmUIEnabled = false;
@@ -99,6 +100,7 @@ public class GameManager : MonoBehaviour
     private bool neuralNetworkUIEnabled = false;
     private bool fitnessSettingsUIEnabled = false;
     private bool snakeStatsUIEnabled = true;
+    private string dnaFileName = "bestDNA1";
     private string inputPop = "";
     //private string inputGeneNum = "";
     private string inputGenLimit = "";
@@ -226,11 +228,40 @@ public class GameManager : MonoBehaviour
 
         const float TEXT_VERTICAL_SPACING_MULTIPLIER = 0.4f;
 
+        /// RIGHT-SIDE MENU
+
         Rect quitButtonRect = new Rect(Screen.width - widgetRect.size.x * 1.1f, 0.0f + widgetRect.size.y * 1.1f, widgetRect.size.x, widgetRect.size.y);
         if (GUI.Button(quitButtonRect, "Quit"))
         {
             Application.Quit();
         }
+        quitButtonRect.y += widgetVerticalSpacing * 1.0f;
+
+        if (GUI.Button(quitButtonRect, "Save DNA"))
+        {
+            StreamWriter dnaWriter = new StreamWriter(dnaFileName + ".dna");
+            bestDNA.Serialize(dnaWriter);
+            dnaWriter.Close();
+        }
+        quitButtonRect.y += widgetVerticalSpacing * 0.6f;
+        if (GUI.Button(quitButtonRect, "Load DNA"))
+        {
+            StreamReader dnaLoader = new StreamReader(dnaFileName + ".dna");
+            bestDNA.Deserialize(dnaLoader);
+            dnaLoader.Close();
+            displayedSnakeGame.Restart(bestDNA.Clone(), this);
+        }
+        quitButtonRect.y += widgetVerticalSpacing * 0.6f;
+        string simulateButtonName = displayBestDNA ? "Stop Simulating Best DNA" : "Simulate Best DNA";
+        if (GUI.Button(quitButtonRect, simulateButtonName))
+        {
+            displayBestDNA = !displayBestDNA;
+            if(displayBestDNA) { displayedSnakeGame.Restart(bestDNA.Clone(), this); }
+        }
+        quitButtonRect.y += widgetVerticalSpacing * 0.6f;       
+        GUILayout.BeginArea(quitButtonRect);
+        dnaFileName = GUILayout.TextField(dnaFileName);
+        GUILayout.EndArea();
 
         /// TRAINING PAUSE-RESUME-START-STOP BUTTONS
 
@@ -265,9 +296,10 @@ public class GameManager : MonoBehaviour
                         streamWriter.WriteLine("");
                     }
                     streamWriter.WriteLine("RunNumber,Mutation Rate,Population Size,Gene Size,Parallel, Fixed RNG Seed,Selection Percentage,Elitist Selection Percentage," +
-                        "HiddenLayers,HiddenLayerNeurons,ScoreMoveEfficiencyMultiplier,ScoreProgressNextAppleMultiplier");
+                        "HiddenLayers,HiddenLayerNeurons,ScoreMoveEfficiencyMultiplier,ScoreProgressNextAppleMultiplier,MostApplesConsumed");
                     streamWriter.WriteLine(runCount + "," + MutationRate + "," + populationSize + "," + numGenes + "," + parallelExecution + "," + fixedRNGSeed + "," + 
-                        SelectionPercentage + "," + elitistPopulationPercentage + ","+numberOfHiddenLayers+","+numberOfHiddenLayerNeurons+","+scoreMovesMultiplier+","+scoreProgressToNextAppleMultiplier);
+                        SelectionPercentage + "," + elitistPopulationPercentage + ","+numberOfHiddenLayers+","+numberOfHiddenLayerNeurons+","+scoreMovesMultiplier+","+scoreProgressToNextAppleMultiplier
+                        +","+bestDNA.mostApplesEaten);
                     streamWriter.WriteLine("");
                     // Write Header
                     streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness");
@@ -340,7 +372,6 @@ public class GameManager : MonoBehaviour
                 GUI.color = defaultColor;
             }
 
-
             GUI.enabled = (!trainingStarted);
             if (GUI.Button(widgetRect, "Clear Log File"))
             {
@@ -349,6 +380,7 @@ public class GameManager : MonoBehaviour
                 streamWriter.Close();
             }
             GUI.enabled = true;
+            //widgetRect.y += widgetVerticalSpacing * 0.6f;
         }
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.3f;
 
@@ -759,6 +791,11 @@ public class GameManager : MonoBehaviour
                 sequentialSnakeGameUpdate();
             }
         }
+        else if (displayBestDNA)
+        {
+            if (displayedSnakeGame.GetSnakeGame().alive == false) { displayedSnakeGame.Restart(bestDNA.Clone(), this); }
+            else { displayedSnakeGame.UpdateSnake(); }
+        }
     }
 
     // ONLY RUN THIS ON A SEPARATE THREAD, OTHERWISE IT WILL BLOCK THE REST OF THE APPLICATION SUCH AS THE UI.
@@ -913,15 +950,24 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                // Selection
+                /// Selection
                 DNA parent1 = chooseParent(random);
                 DNA parent2 = chooseParent(random);
 
-                // Crossover
+                /// Crossover
                 DNA child = parent1.Crossover(parent2, random);
 
-                // Mutation
-                child.Mutate(MutationRate, random);
+                /// Mutation
+                // Increase mutation rate if no change detected for a significant period of time
+                if (bestFitnessGeneration-generation >= 500)
+                {
+                    child.Mutate(MutationRate+0.5f, random);
+                }
+                else
+                {
+                    child.Mutate(MutationRate, random);
+                }
+                    
 
                 newPopulation[i] = child;
             }

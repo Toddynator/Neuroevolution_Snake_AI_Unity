@@ -381,7 +381,7 @@ MonoBehaviour:
   numberOfHiddenLayers: 1
   numberOfHiddenLayerNeurons: 3
   parallelExecution: 1
-  populationSize: 500
+  populationSize: 1000
   generationLimit: 3000
   generationLimitEnabled: 1
   MutationRate: 0.05
