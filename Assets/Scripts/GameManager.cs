@@ -89,6 +89,7 @@ public class GameManager : MonoBehaviour
     private float generationTotalFitness = 0;
     private float generationAverageFitness = 0;
     private float generationsLowestFitness = 0;
+    private bool pauseDisplayedGame = false;
 
     /// UI
     private bool geneticAlgorithmUIEnabled = false;
@@ -215,6 +216,7 @@ public class GameManager : MonoBehaviour
         float widgetVerticalSpacing = menuRect.size.x * 0.235f; // Should increment widgetRect y by this after each widget to space the UI out.
         int inputInt;
         float inputFloat;
+        Color defaultColor = GUI.color;
 
         GUIStyle header = new GUIStyle(GUI.skin.label);
         header.fontSize = 16;
@@ -309,6 +311,32 @@ public class GameManager : MonoBehaviour
             }
             GUI.enabled = true;
             widgetRect.y += widgetVerticalSpacing * 0.6f;
+
+            /// Display Game Pause Button
+
+            if (simulationTerminated)
+            {
+                if (pauseDisplayedGame)
+                {
+                    GUI.color = Color.red;
+                    if (GUI.Button(widgetRect, "Resume Displayed Game"))
+                    {
+                        pauseDisplayedGame = false;
+                    }
+                }
+                else
+                {
+                    GUI.color = Color.green;
+                    if (GUI.Button(widgetRect, "Pause Displayed Game"))
+                    {
+                        pauseDisplayedGame = true;
+                    }
+                }
+                widgetRect.y += widgetVerticalSpacing * 0.6f;
+                GUI.color = defaultColor;
+            }
+
+
             GUI.enabled = (!trainingStarted);
             if (GUI.Button(widgetRect, "Clear Log File"))
             {
@@ -324,7 +352,6 @@ public class GameManager : MonoBehaviour
         // Because of how large the UI is, I'll make it possible to enable/disable tabs
 
         Rect tabButtonsWidget = new Rect(widgetRect.x, widgetRect.y, widgetRect.width * 0.33f, widgetRect.height * 0.7f);
-        Color defaultColor = GUI.color;
         {
             GUI.color = gameSettingsUIEnabled ? defaultColor : Color.red;
             if (GUI.Button(tabButtonsWidget, "Game"))
@@ -691,7 +718,7 @@ public class GameManager : MonoBehaviour
                         parallelTaskRunning = true;
                         parallelTrainingTask = Task.Run(() => parallelTrainingLoop());
                     }
-                    else
+                    else if (!pauseDisplayedGame)
                     {
                         // Run the best fitness DNA repeatedly.
                         if (displayedSnakeGame.GetSnakeGame().alive == false) { displayedSnakeGame.Restart(bestDNA.Clone(), this); }
@@ -792,7 +819,7 @@ public class GameManager : MonoBehaviour
                 displayedSnakeGame.Restart(bestDNA.Clone(), this);
             }
         }
-        else
+        else if (!pauseDisplayedGame)
         {
             displayedSnakeGame.UpdateSnake();
         }

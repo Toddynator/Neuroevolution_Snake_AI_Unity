@@ -381,13 +381,13 @@ MonoBehaviour:
   numberOfHiddenLayers: 0
   numberOfHiddenLayerNeurons: 0
   parallelExecution: 1
-  populationSize: 100
+  populationSize: 200
   generationLimit: 3000
   generationLimitEnabled: 1
   numGenes: 1000
-  MutationRate: 0.15
+  MutationRate: 0.05
   SelectionPercentage: 0.1
-  elitistPopulationPercentage: 0.03
+  elitistPopulationPercentage: 0.01
   scorePerApple: 10
   scoreProgressToNextAppleMultiplier: 1
   scoreMovesMultiplier: 1
