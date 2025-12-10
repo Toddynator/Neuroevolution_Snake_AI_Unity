@@ -304,6 +304,10 @@ public class SnakeGame
         //// NEURAL NETWORK
         // SHOULD MATCH THE NUMBER OF INPUT NEURONS SET IN THE NEURAL NETWORK
         // If input neurons don't match, update GameManager constants. (Not meant to be modifiable during runtime).
+        /*
+         IDEAS:
+         * Passing grid size could be useful, but I'll need a maximumm grid size so that I can convert it into a suitable range for the neural network.
+         */
 
         /// CONVERT INPUTS INTO RANGE 0.0f to 1.0f
         
@@ -318,19 +322,51 @@ public class SnakeGame
         float distanceToFrontObstacleInput = distanceToObstacleInFront / maxDistance;
         float distanceToLeftObstacleInput = distanceToLeftObstacle / maxDistance;
         float distanceToRightObstacleInput = distanceToRightObstacle / maxDistance;
+        float inputDirectionX = (direction.x + 1.0f) / 2.0f;
+        float inputDirectionY = (direction.y + 1.0f) / 2.0f;
+        float inputHeadPositionX = (segments[0].x / gridSize.x);
+        float inputHeadPositionY = (segments[0].y / gridSize.y);
+
+        float distanceToWallBehind;
+        float inputDistanceToWallBehind;
+        if (direction.x == 1)
+        {
+            distanceToWallBehind = segments[0].x;
+            inputDistanceToWallBehind = distanceToWallBehind / (gridSize.x - 1);
+        }
+        else if (direction.x == -1)
+        {
+            distanceToWallBehind = (gridSize.x - 1) - segments[0].x;
+            inputDistanceToWallBehind = distanceToWallBehind / (gridSize.x - 1);
+        }
+        else if (direction.y == 1)
+        {
+            distanceToWallBehind = segments[0].y;
+            inputDistanceToWallBehind = distanceToWallBehind / (gridSize.y - 1);
+        }
+        else
+        {
+            distanceToWallBehind = (gridSize.y - 1) - segments[0].y;
+            inputDistanceToWallBehind = distanceToWallBehind / (gridSize.y - 1);
+        }
 
         /// SET NEURAL NETWORK INPUTS
 
         float[] snakeInputs = new float[]
         {
-            distanceToAppleInput,
-            seesAppleFloat,
-            inputAppleDirectionX,
-            inputAppleDirectionY,
-            distanceToFrontObstacleInput,
-            distanceToLeftObstacleInput,
-            distanceToRightObstacleInput
-        };
+        distanceToAppleInput,
+        seesAppleFloat,
+        inputAppleDirectionX,
+        inputAppleDirectionY,
+        distanceToFrontObstacleInput,
+        distanceToLeftObstacleInput,
+        distanceToRightObstacleInput,
+        inputDistanceToWallBehind,
+        inputDirectionX,
+        inputDirectionY,
+        inputHeadPositionX,
+        inputHeadPositionY
+        }; 
 
         neuralNetwork.SetInputs(snakeInputs);
         neuralNetwork.CalculateOutputs();

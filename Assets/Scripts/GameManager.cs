@@ -39,7 +39,7 @@ public class GameManager : MonoBehaviour
 
     /// NEURAL NETWORK SETTINGS
 
-    public const int numberOfInputNeurons = 7; // Should match the number of snake inputs I pass into the neural network.
+    public const int numberOfInputNeurons = 12; // Should match the number of snake inputs I pass into the neural network.
     public const int numberOfOutputNeurons = 3;
     public int numberOfHiddenLayers = 3;
     public int numberOfHiddenLayerNeurons = 120;
