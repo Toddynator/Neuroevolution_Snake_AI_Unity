@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using Unity.Burst.CompilerServices;
 using UnityEngine;
 
@@ -272,7 +273,6 @@ public class SnakeGame
         // EDGE CASE: Snake has outgrown the level.
         if (segments.Count >= (grid.GetLength(0) - 1) * (grid.GetLength(1) - 1)) { gameOver(); return; }
     }
-
     private void spawnApple()
     {
         /// TODO, add a way to use the same seed every time, should use apples consumed to ensure apples spawn in a different location each time as well.
@@ -293,7 +293,6 @@ public class SnakeGame
             }
         }
     }
-
     private void gameOver()
     {
         alive = false;
@@ -410,7 +409,6 @@ public class SnakeGame
             turnDirection = 1;
         }
     }
-
     private Vector2Int determineDirection(int turnInput)
     {
         Vector2Int newDirection = Vector2Int.zero;
@@ -463,6 +461,7 @@ public class SnakeGame
     {
         float score = 0.0f;
         float maxPossibleDistanceToApple = gridSize.magnitude;
+        if (numberOfApplesConsumed > 0) { averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed; }
 
         score += numberOfApplesConsumed * SCORE_PER_APPLE; // Primarily reward based on number of apples gained
         score += SCORE_PROGRESS_TO_NEXT_APPLE_MULTIPLIER * SCORE_PER_APPLE * (1.0f - distanceToApple / maxPossibleDistanceToApple); // Reward getting closer to the apple with each generation

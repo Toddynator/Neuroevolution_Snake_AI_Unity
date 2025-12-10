@@ -12,6 +12,15 @@ using UnityEngine.Rendering;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 
+/*
+NOTE:
+I found the best results when I train with a fixed RNG seed THEN tested against random rng seeds (random apple spawns).
+Recommend using parallel. You can put the neural network to any size but it will drastically lower the speed
+of training. You get perfectly fine results with 0 hidden layers in your neural network.
+A low selection rate of 0.1 is typically best for faster training, you'll see within the first 500 or so generations 
+some fast progress, 0.5 for example can take far longer going into the 1000's of generations before you see similar
+results.
+ */
 public enum TileType
 {
     Empty = 0,
@@ -82,11 +91,11 @@ public class GameManager : MonoBehaviour
     private float generationsLowestFitness = 0;
 
     /// UI
-    private bool geneticAlgorithmUIEnabled = true;
+    private bool geneticAlgorithmUIEnabled = false;
     private bool gameSettingsUIEnabled = false;
     private bool trainingProgressUIEnabled = true;
-    private bool neuralNetworkUIEnabled = true;
-    private bool fitnessSettingsUIEnabled = true;
+    private bool neuralNetworkUIEnabled = false;
+    private bool fitnessSettingsUIEnabled = false;
     private string inputPop = "";
     //private string inputGeneNum = "";
     private string inputGenLimit = "";
@@ -267,12 +276,6 @@ public class GameManager : MonoBehaviour
                     {
                         simulationTerminated = false;
                         parallelTaskRunning = false;
-
-                        // Ensure snake game is running the best dna.
-                        if (displayedSnakeGame.GetSnakeGame().dna.generationNumber != bestDNA.generationNumber || displayedSnakeGame.GetSnakeGame().dna.snakeNumber != bestDNA.snakeNumber)
-                        {
-                            displayedSnakeGame.Restart(bestDNA.Clone(), this);
-                        }
                     }
                     GUI.enabled = true;
                 }
@@ -281,6 +284,11 @@ public class GameManager : MonoBehaviour
                     if (GUI.Button(widgetRect, "Pause Training"))
                     {
                         simulationTerminated = true;
+                        // Ensure snake game is running the best dna.
+                        if (displayedSnakeGame.GetSnakeGame().dna.generationNumber != bestDNA.generationNumber || displayedSnakeGame.GetSnakeGame().dna.snakeNumber != bestDNA.snakeNumber)
+                        {
+                            displayedSnakeGame.Restart(bestDNA.Clone(), this);
+                        }
                     }
                 }
             }
@@ -676,7 +684,7 @@ public class GameManager : MonoBehaviour
             if (parallelExecution)
             {
                 if (!parallelTaskRunning)
-                {                 
+                {
                     if (!simulationTerminated)
                     {
                         // Run the training on a separate thread so that it doesn't block the main thread (UI Input, etc).
@@ -737,13 +745,13 @@ public class GameManager : MonoBehaviour
                 population[i].fitness = game.CalculateFitness(scorePerApple, scoreMovesMultiplier, scoreProgressToNextAppleMultiplier, scoreDecayRate);
             }
         });
-        if (cancellationTokenSource.Token.IsCancellationRequested) { return; }
         // Determine best fitness    
         generationsLowestFitness = population[0].fitness; // So that it doesn't start at 0.
         for (int i = 0; i < population.Length; i++)
         {
             checkAndHandleIfSnakeHasBestDNA(i);
         }
+        if (cancellationTokenSource.Token.IsCancellationRequested) { return; }
         // Next Generation
         if (!shouldSimulationTerminate())
         {
