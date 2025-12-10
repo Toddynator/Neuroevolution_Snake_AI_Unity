@@ -386,8 +386,8 @@ MonoBehaviour:
   generationLimitEnabled: 1
   numGenes: 1000
   MutationRate: 0.15
-  SelectionPercentage: 0.5
-  elitistPopulationPercentage: 0.05
+  SelectionPercentage: 0.1
+  elitistPopulationPercentage: 0.03
 --- !u!4 &1143769917
 Transform:
   m_ObjectHideFlags: 0

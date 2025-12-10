@@ -273,7 +273,6 @@ public class GameManager : MonoBehaviour
         {
             trainingStarted = false;
             simulationTerminated = false;
-            streamWriter.Close(); // Close file so that it can be opened.
             cancellationTokenSource.Cancel();
             if (parallelTrainingTask != null)
             {
@@ -281,6 +280,7 @@ public class GameManager : MonoBehaviour
             }
             cancellationTokenSource.Dispose();
             cancellationTokenSource = new CancellationTokenSource();
+            streamWriter.Close();
         }
         GUI.enabled = true;
         widgetRect.y += widgetVerticalSpacing * 0.6f;

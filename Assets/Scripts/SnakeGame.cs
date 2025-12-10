@@ -253,11 +253,6 @@ public class SnakeGame
         {
             gameOver();
         }
-        // NOTE: This should be removed if I change dna to instead be used as weightings and therefore have a 'reactive' AI.
-        if (numMovesSinceLastApple > dna.genes.Length)
-        {
-            gameOver();
-        }
     }
 
     private void grow()

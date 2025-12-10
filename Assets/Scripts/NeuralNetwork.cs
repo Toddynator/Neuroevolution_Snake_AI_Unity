@@ -136,6 +136,9 @@ public class NeuralNetwork
         // https://machinelearningmastery.com/a-gentle-introduction-to-sigmoid-function/
         // I used the sigmoid function for this.
         return 1.0f / (1.0f + MathF.Exp(-linearTransformationValue));
+
+        // ReLU, ensures values are always positive and is less expensive to compute
+        //return MathF.Max(0, linearTransformationValue);
     }
 
     // Should be called before Calculating the Outputs / Forward Propogating.
