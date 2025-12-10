@@ -327,6 +327,7 @@ public class SnakeGame
         
         // Use max possible distance to convert any distance variables into range
         float maxDistance = Mathf.Max(gridSize.x, gridSize.y);
+        float numberOfTiles = gridSize.x * gridSize.y;
 
         float seesAppleFloat = seeApple ? 1.0f : 0.0f;
         Vector2 normalizedAppleDirection = directionToApple.normalized;
@@ -340,6 +341,7 @@ public class SnakeGame
         float inputDirectionY = (direction.y + 1.0f) / 2.0f;
         float inputHeadPositionX = ((float)segments[0].x / (float)gridSize.x);
         float inputHeadPositionY = ((float)segments[0].y / (float)gridSize.y);
+        float inputSnakeLength = segments.Count / numberOfTiles;
 
         float inputDistanceToWallBehind;
         if (direction.x == 1)
@@ -396,7 +398,8 @@ public class SnakeGame
         inputDirectionX,
         inputDirectionY,
         inputHeadPositionX,
-        inputHeadPositionY
+        inputHeadPositionY,
+        inputSnakeLength
         }; 
 
         neuralNetwork.SetInputs(snakeInputs);
@@ -479,6 +482,7 @@ public class SnakeGame
             averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed;
             averageMoveEfficiency = (totalMoveEfficiency / numberOfApplesConsumed);
         }
+        if (numberOfApplesConsumed > dna.mostApplesEaten) { dna.mostApplesEaten = numberOfApplesConsumed; } 
 
         //score += numberOfApplesConsumed * SCORE_PER_APPLE; // Primarily reward based on number of apples gained
         score += numberOfApplesConsumed * SCORE_PER_APPLE;

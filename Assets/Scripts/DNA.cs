@@ -16,9 +16,10 @@ public class DNA
     public float[] genes;
     public float fitness = 0.0f;
 
-    // Values to use for ID : Allows me to check if DNA is the same as other dna, even when cloned.
+    // Values to use for ID or Stats: Allows me to check if DNA is the same as other dna, even when cloned.
     public int generationNumber = 0;
     public int snakeNumber = 0;
+    public int mostApplesEaten = 0;
 
     public DNA(int numGenes, System.Random random)
     {
@@ -47,6 +48,9 @@ public class DNA
         DNA copy = new DNA(genes.Length);
         copy.genes = (float[])genes.Clone();
         copy.fitness = fitness;
+        copy.generationNumber = generationNumber;
+        copy.snakeNumber = snakeNumber;
+        copy.mostApplesEaten = mostApplesEaten;
         return copy;
     }
 

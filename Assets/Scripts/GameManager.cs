@@ -48,7 +48,7 @@ public class GameManager : MonoBehaviour
 
     /// NEURAL NETWORK SETTINGS
 
-    public const int numberOfInputNeurons = 12; // Should match the number of snake inputs I pass into the neural network.
+    public const int numberOfInputNeurons = 13; // Should match the number of snake inputs I pass into the neural network.
     public const int numberOfOutputNeurons = 3;
     public int numberOfHiddenLayers = 3;
     public int numberOfHiddenLayerNeurons = 120;
@@ -90,6 +90,7 @@ public class GameManager : MonoBehaviour
     private float generationAverageFitness = 0;
     private float generationsLowestFitness = 0;
     private bool pauseDisplayedGame = false;
+    private int mostApplesEaten = 0;
 
     /// UI
     private bool geneticAlgorithmUIEnabled = false;
@@ -263,8 +264,10 @@ public class GameManager : MonoBehaviour
                     {
                         streamWriter.WriteLine("");
                     }
-                    streamWriter.WriteLine("RunNumber,Mutation Rate,Population Size,Gene Size,Parallel, Fixed RNG Seed,Selection Percentage,Elitist Selection Percentage");
-                    streamWriter.WriteLine(runCount + "," + MutationRate + "," + populationSize + "," + numGenes + "," + parallelExecution + "," + fixedRNGSeed + "," + SelectionPercentage + "," + elitistPopulationPercentage);
+                    streamWriter.WriteLine("RunNumber,Mutation Rate,Population Size,Gene Size,Parallel, Fixed RNG Seed,Selection Percentage,Elitist Selection Percentage," +
+                        "HiddenLayers,HiddenLayerNeurons,ScoreMoveEfficiencyMultiplier,ScoreProgressNextAppleMultiplier");
+                    streamWriter.WriteLine(runCount + "," + MutationRate + "," + populationSize + "," + numGenes + "," + parallelExecution + "," + fixedRNGSeed + "," + 
+                        SelectionPercentage + "," + elitistPopulationPercentage + ","+numberOfHiddenLayers+","+numberOfHiddenLayerNeurons+","+scoreMovesMultiplier+","+scoreProgressToNextAppleMultiplier);
                     streamWriter.WriteLine("");
                     // Write Header
                     streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness");
@@ -669,6 +672,9 @@ public class GameManager : MonoBehaviour
             GUI.Label(widgetRect, "Best Fitness Generation: " + bestFitnessGeneration);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
+            GUI.Label(widgetRect, "Most Apples Eaten: " + bestDNA.mostApplesEaten);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
             GUI.Label(widgetRect, "Generation: " + generation);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
@@ -872,6 +878,11 @@ public class GameManager : MonoBehaviour
         if (generationLimitEnabled && generation > generationLimit)
         {
             simulationTerminated = true;
+            // Ensure snake game is running the best dna.
+            if (displayedSnakeGame.GetSnakeGame().dna.generationNumber != bestDNA.generationNumber || displayedSnakeGame.GetSnakeGame().dna.snakeNumber != bestDNA.snakeNumber)
+            {
+                displayedSnakeGame.Restart(bestDNA.Clone(), this);
+            }
             return true;
         }
 
