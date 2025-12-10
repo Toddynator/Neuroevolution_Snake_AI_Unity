@@ -48,12 +48,12 @@ public class NeuralNetwork
     
 
 
-    public NeuralNetwork(DNA dna, int numInputNeurons, int numOutputNerons, int numHiddenLayers, int numHiddenLayerNeurons)
+    public NeuralNetwork(DNA dna, int numInputNeurons, int numOutputNeurons, int numHiddenLayers, int numHiddenLayerNeurons)
     {
         //// Initialisation network
 
         numberOfInputNeurons = numInputNeurons;
-        numberOfOutputNeurons = numOutputNerons;
+        numberOfOutputNeurons = numOutputNeurons;
         numberOfHiddenLayers = numHiddenLayers;
         numberOfHiddenLayerNeurons = numHiddenLayerNeurons;
 
@@ -85,7 +85,9 @@ public class NeuralNetwork
         // Initialises weights to dna gene values.  
 
         // Set weights for every layer except the output layer, which doesn't need weights.
-        int geneIndex = 0;
+        int weightGeneIndex = 0;
+        int biasGeneIndex = 0;
+        int biasGeneOffset = calculateNumberOfGenesForWeights(numHiddenLayers, numHiddenLayerNeurons, numInputNeurons, numOutputNeurons);
         weights = new float[totalLayers-1][][]; // Not needed for output layer
         biases = new float[totalLayers][]; // Not needed for input layer, but I'm initialising it anyway otherwise it gets too confusing.
         values = new float[totalLayers][];
@@ -111,25 +113,34 @@ public class NeuralNetwork
                     {
                         // Use Genes for the value of the neuron connection weights
                         // Modulus ensures it doesn't throw an error if not enough genes are created.
-                        weights[layerNum][neuronNum][connectionNum] = dna.genes[geneIndex % dna.genes.Length];
-                        geneIndex++;
+                        weights[layerNum][neuronNum][connectionNum] = dna.genes[weightGeneIndex % dna.genes.Length];
+                        weightGeneIndex++;
                     }
                 }
 
                 // Set Biases & Values
-                biases[layerNum][neuronNum] = 0.0f;
+                biases[layerNum][neuronNum] = dna.genes[(biasGeneOffset+biasGeneIndex) % dna.genes.Length];
                 values[layerNum][neuronNum] = 0.0f;
+
+                biasGeneIndex++;
             }
         }
     }
 
-    static public int CalculateNumberOfGenesForNeuralNetwork(int numHiddenLayers, int numHiddenLayerNeurons, int numInputNeurons, int numOutputNeurons)
+    static private int calculateNumberOfGenesForWeights(int numHiddenLayers, int numHiddenLayerNeurons, int numInputNeurons, int numOutputNeurons)
     {
         if (numHiddenLayers > 0)
         {
             return numInputNeurons * numHiddenLayerNeurons + numHiddenLayers * numHiddenLayerNeurons * numHiddenLayerNeurons + numHiddenLayerNeurons * numOutputNeurons;
         }
         return numInputNeurons * numOutputNeurons;
+    }
+
+    static public int CalculateNumberOfGenesForNeuralNetwork(int numHiddenLayers, int numHiddenLayerNeurons, int numInputNeurons, int numOutputNeurons)
+    {
+        int genesForBiases = numInputNeurons + numHiddenLayers * numHiddenLayerNeurons + numOutputNeurons;
+        int genesForWeights = calculateNumberOfGenesForWeights(numHiddenLayers, numHiddenLayerNeurons, numInputNeurons, numOutputNeurons);
+        return genesForBiases + genesForWeights;        
     }
 
     // Call on each frame, set inputs before calling.

@@ -65,7 +65,7 @@ public class DNA
         }
 
         /// Single Point Crossover
-        //int parent1Length = UnityEngine.Random.Range(0, genes.Length);
+        //int parent1Length = random.Next(0, genes.Length);
         //int parent2Length = otherParent.genes.Length - parent1Length;
         //for (int i = 0; i < parent1Length; i++)
         //{

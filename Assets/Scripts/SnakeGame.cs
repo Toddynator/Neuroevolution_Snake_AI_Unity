@@ -452,7 +452,7 @@ public class SnakeGame
 
         score += numberOfApplesConsumed * SCORE_PER_APPLE; // Primarily reward based on number of apples gained
         score += SCORE_PER_APPLE * (1.0f - distanceToApple / maxPossibleDistanceToApple); // Reward getting closer to the apple with each generation
-        if (diedToCollision) { score *= SCORE_COLLISION_PENALTY_MULTIPLIER; } // Penalise the snake killing itself so that the generations don't get trapped on DNA that involves moving into a wall
+        //if (diedToCollision) { score *= SCORE_COLLISION_PENALTY_MULTIPLIER; } // Penalise the snake killing itself so that the generations don't get trapped on DNA that involves moving into a wall
         score = score * Mathf.Exp(numOfMovesWhenGreatestLengthReached * -(SCORE_DECAY_RATE)) * SCORE_MOVES_MULTIPLIER; // Should reward / penalise for taking too many moves to get each apple.
 
         dna.fitness = score;
