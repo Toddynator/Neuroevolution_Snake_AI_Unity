@@ -10,20 +10,23 @@ using System.Runtime.CompilerServices;
  * Designed to use Genetic Algorithms for Training instead of Back Propogation and Loss Calculation.
  * 
  * I chose to have each hidden layer be the same size for simplicity.
- * I use Sigmoid for the Activation function (first I came across).
+ * I use Sigmoid for the Activation function due to its range of outputs being 0 and 1 which was perfect for probability testing in the outputs.
  * Source: https://www.geeksforgeeks.org/machine-learning/neural-networks-a-beginners-guide/
  * 
  * biases + values represent a neuron.
  * weights represents the connections from each neuron to the neuron in the next layer.
  * 
- * Should ensure that number of genes is equal to the number of connections to get best results.
- * Formula for the number required:
- * numberOfInputNeurons*numberOfHiddenLayerNeurons + numberOfHiddenLayers*numberOfHiddenLayerNeurons*numberOfHiddenLayerNeurons + numberOfHiddenLayerNeurons*numberOfOutputNeurons;
- * 
  * My weights are in the range of -1.0f to 1.0f
  * 
  * INPUTS SHOULD BE IN THE RANGE FROM 0.0f TO 1.0f.
  * The input range should match the Activation Function I use, in my case Sigmoid which gives a range from 0.0f to 1.0f.
+ * 
+ * I may consider using ReLu but I'm unsure about it providing outputs that aren't in a set range.
+ * Although I guess it could still work for the snake turning, since all I need to do is compare the size of each to get the highest value.
+ * Not sure how my inputs should be handled in this case however.
+ * 
+ * I used to store weights and biases as jagged arrays, but I've now opted to use the genes directly with a simple gene index counter which has drastically simplified
+ * the network.
  */
 
 public class NeuralNetwork
@@ -34,12 +37,14 @@ public class NeuralNetwork
     private int numberOfOutputNeurons = 1;
     private int numberOfHiddenLayers = 0;
     private int numberOfHiddenLayerNeurons = 1;
+    private int outputLayerNumber = 2;
+    private int totalLayers = 2;
 
     /// NEURAL NETWORK
 
-    private float[][][] weights; // Layer Index, Neuron Index in current Layer, Neuron Index in the Next Layer. Represents connections, stores weight for each connection. Input Layer to final Hidden Layer
-    private float[][] biases; // Bias for each neuron. Layer, Neuron in Layer. First Hidden Layer to Output Layer.
     private float[][] values; // The stored / calculated value for each neuron. Layer, Neuron in Layer. All Layers.
+    DNA dna;
+    int geneIndex = 0;
 
 
 
@@ -48,17 +53,18 @@ public class NeuralNetwork
     
 
 
-    public NeuralNetwork(DNA dna, int numInputNeurons, int numOutputNeurons, int numHiddenLayers, int numHiddenLayerNeurons)
+    public NeuralNetwork(DNA newDna, int numInputNeurons, int numOutputNeurons, int numHiddenLayers, int numHiddenLayerNeurons)
     {
         //// Initialisation network
 
+        dna = newDna;
         numberOfInputNeurons = numInputNeurons;
         numberOfOutputNeurons = numOutputNeurons;
         numberOfHiddenLayers = numHiddenLayers;
         numberOfHiddenLayerNeurons = numHiddenLayerNeurons;
 
-        int outputLayerNumber = 1 + numberOfHiddenLayers;
-        int totalLayers = 2 + numberOfHiddenLayers;
+        outputLayerNumber = 1 + numberOfHiddenLayers;
+        totalLayers = 2 + numberOfHiddenLayers;
 
         // Calculate neurons per layer
         int[] neuronsPerLayer = new int[numberOfHiddenLayers+2];
@@ -69,61 +75,13 @@ public class NeuralNetwork
             neuronsPerLayer[i] = numberOfHiddenLayerNeurons;
         }
 
-        /// VALIDATION
-        // Should check that the number of genes is greater or equal to the total number of weights (+ biases if I decide to have them modifed as well).
-        // Ideally the application should ensure that geneNumber is always set to the required number, and instead have settings for the neural network which automatically calculate
-        // the number of genes to use.
+        /// Create Value Arrays
 
-        /*int numGenes = dna.genes.Length;
-        int genesRequired = CalculateNumberOfGenesForNeuralNetwork()
-        if (numGenes < genesRequired)
-        {
-            
-        }*/
-
-        /// Set Weights, Biaases & Values
-        // Initialises weights to dna gene values.  
-
-        // Set weights for every layer except the output layer, which doesn't need weights.
-        int weightGeneIndex = 0;
-        int biasGeneIndex = 0;
-        int biasGeneOffset = calculateNumberOfGenesForWeights(numHiddenLayers, numHiddenLayerNeurons, numInputNeurons, numOutputNeurons);
-        weights = new float[totalLayers-1][][]; // Not needed for output layer
-        biases = new float[totalLayers][]; // Not needed for input layer, but I'm initialising it anyway otherwise it gets too confusing.
         values = new float[totalLayers][];
         for (int layerNum = 0; layerNum < neuronsPerLayer.Length ; layerNum++)
         {
-            bool finalLayer = layerNum == neuronsPerLayer.Length - 1;
             int numNeuronsCurrentLayer = neuronsPerLayer[layerNum];
-
-            // Set the index of the neuron belonging to the layer
-
-            if (!finalLayer) { weights[layerNum] = new float[numNeuronsCurrentLayer][]; }
-            biases[layerNum] = new float[numNeuronsCurrentLayer];
             values[layerNum] = new float[numNeuronsCurrentLayer];
-            // Set the index of the neuron in the next layer
-            for (int neuronNum = 0; neuronNum < numNeuronsCurrentLayer; neuronNum++)
-            {
-                // Set Weights
-                if (!finalLayer)
-                {
-                    int numNeuronsNextLayer = neuronsPerLayer[layerNum + 1];
-                    weights[layerNum][neuronNum] = new float[numNeuronsNextLayer];
-                    for (int connectionNum = 0; connectionNum < numNeuronsNextLayer; connectionNum++)
-                    {
-                        // Use Genes for the value of the neuron connection weights
-                        // Modulus ensures it doesn't throw an error if not enough genes are created.
-                        weights[layerNum][neuronNum][connectionNum] = dna.genes[weightGeneIndex % dna.genes.Length];
-                        weightGeneIndex++;
-                    }
-                }
-
-                // Set Biases & Values
-                biases[layerNum][neuronNum] = dna.genes[(biasGeneOffset+biasGeneIndex) % dna.genes.Length];
-                values[layerNum][neuronNum] = 0.0f;
-
-                biasGeneIndex++;
-            }
         }
     }
 
@@ -131,14 +89,14 @@ public class NeuralNetwork
     {
         if (numHiddenLayers > 0)
         {
-            return numInputNeurons * numHiddenLayerNeurons + numHiddenLayers * numHiddenLayerNeurons * numHiddenLayerNeurons + numHiddenLayerNeurons * numOutputNeurons;
+            return numInputNeurons * numHiddenLayerNeurons + (numHiddenLayers-1) * numHiddenLayerNeurons * numHiddenLayerNeurons + numHiddenLayerNeurons * numOutputNeurons;
         }
         return numInputNeurons * numOutputNeurons;
     }
 
     static public int CalculateNumberOfGenesForNeuralNetwork(int numHiddenLayers, int numHiddenLayerNeurons, int numInputNeurons, int numOutputNeurons)
     {
-        int genesForBiases = numInputNeurons + numHiddenLayers * numHiddenLayerNeurons + numOutputNeurons;
+        int genesForBiases = numHiddenLayers * numHiddenLayerNeurons + numOutputNeurons;
         int genesForWeights = calculateNumberOfGenesForWeights(numHiddenLayers, numHiddenLayerNeurons, numInputNeurons, numOutputNeurons);
         return genesForBiases + genesForWeights;        
     }
@@ -150,7 +108,8 @@ public class NeuralNetwork
         // The values are calculated for every neuron in a layer before moving to the next layer. Each layer depends
         // on values from the previous layer. The Input layer should be set externally before calling this function.
 
-        for (int layerNum = 1; layerNum < values.Length; layerNum++)
+        geneIndex = 0;
+        for (int layerNum = 1; layerNum < totalLayers; layerNum++)
         {
             int numNeuronsCurrentLayer = values[layerNum].Length;
             for (int neuronNum = 0; neuronNum < numNeuronsCurrentLayer; neuronNum++)
@@ -167,11 +126,14 @@ public class NeuralNetwork
         // connection from that previous neuron to the current neuron. Then adds a bias associated with the current neuron.
 
         float output = 0.0f;
-        for (int previousLayerNeuronNum = 0; previousLayerNeuronNum < weights[layerIndex-1].Length; previousLayerNeuronNum++)
+        int numNeurons = layerIndex - 1 == 0 ? numberOfInputNeurons : numberOfHiddenLayerNeurons;
+        for (int previousLayerNeuronNum = 0; previousLayerNeuronNum < numNeurons; previousLayerNeuronNum++)
         {
-            output += (weights[layerIndex - 1][previousLayerNeuronNum][neuronIndex] * values[layerIndex-1][previousLayerNeuronNum]);
+            output += (dna.genes[geneIndex] * values[layerIndex - 1][previousLayerNeuronNum]);
+            geneIndex++;
         }
-        output += biases[layerIndex][neuronIndex];
+        output += dna.genes[geneIndex];
+        geneIndex++; // Weight for next linearTransformation should be on the next index
         return output;
     }
 
