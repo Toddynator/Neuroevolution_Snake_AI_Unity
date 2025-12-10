@@ -128,12 +128,10 @@ public class GameManager : MonoBehaviour
     {
         shutdown();
     }
-
     private void OnDestroy()
     {
         shutdown();
     }
-
     private void shutdown()
     {
         streamWriter.Close();
@@ -221,128 +219,139 @@ public class GameManager : MonoBehaviour
             Application.Quit();
         }
 
-        if (!trainingStarted)
-        {
-            if (GUI.Button(widgetRect, "Start Training"))
-            {
-                trainingStarted = true;
-                simulationTerminated = false;
-                parallelTaskRunning = false;
-                runCount++;
-                generation = 0;
-                currentSnake = 0;
-                bestFitnessGeneration = 0;
-                generationsBestFitness = 0;
-                generationTotalFitness = 0;
-                generationAverageFitness = 0;
-                generationsLowestFitness = 0;
-                numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(numberOfHiddenLayers, numberOfHiddenLayerNeurons, numberOfInputNeurons, numberOfOutputNeurons);
-                validateSceneSize();
-                updateCamera();
-                createInitialPopulation();
-                createSnake();
+        /// TRAINING PAUSE-RESUME-START-STOP BUTTONS
 
-                // Start writing to file. Will append to previous entries instead of overwriting.
-                string fileName = trainingLogFileName + ".csv";
-                streamWriter = new StreamWriter(fileName, append: true); // This means I could reuse one file and have multiple training sessions logged to it.
-                // Write Settings ~ Space out from previous training session (If any)
-                if (new FileInfo(fileName).Length != 0)
-                {
-                    streamWriter.WriteLine("");
-                }
-                streamWriter.WriteLine("RunNumber,Mutation Rate,Population Size,Gene Size,Parallel, Fixed RNG Seed,Selection Percentage,Elitist Selection Percentage");
-                streamWriter.WriteLine(runCount + "," + MutationRate + "," + populationSize + "," + numGenes + "," + parallelExecution + "," + fixedRNGSeed + "," + SelectionPercentage + "," + elitistPopulationPercentage);
-                streamWriter.WriteLine("");
-                // Write Header
-                streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness");
-            }
-        }
-        else
         {
-            if (simulationTerminated)
-            {               
-                GUI.enabled = !shouldSimulationTerminate();
-                if (GUI.Button(widgetRect, "Resume Training"))
+            if (!trainingStarted)
+            {
+                if (GUI.Button(widgetRect, "Start Training"))
                 {
+                    trainingStarted = true;
                     simulationTerminated = false;
                     parallelTaskRunning = false;
+                    runCount++;
+                    generation = 0;
+                    currentSnake = 0;
+                    bestFitnessGeneration = 0;
+                    generationsBestFitness = 0;
+                    generationTotalFitness = 0;
+                    generationAverageFitness = 0;
+                    generationsLowestFitness = 0;
+                    numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(numberOfHiddenLayers, numberOfHiddenLayerNeurons, numberOfInputNeurons, numberOfOutputNeurons);
+                    validateSceneSize();
+                    updateCamera();
+                    createInitialPopulation();
+                    createSnake();
+
+                    // Start writing to file. Will append to previous entries instead of overwriting.
+                    string fileName = trainingLogFileName + ".csv";
+                    streamWriter = new StreamWriter(fileName, append: true); // This means I could reuse one file and have multiple training sessions logged to it.
+                    // Write Settings ~ Space out from previous training session (If any)
+                    if (new FileInfo(fileName).Length != 0)
+                    {
+                        streamWriter.WriteLine("");
+                    }
+                    streamWriter.WriteLine("RunNumber,Mutation Rate,Population Size,Gene Size,Parallel, Fixed RNG Seed,Selection Percentage,Elitist Selection Percentage");
+                    streamWriter.WriteLine(runCount + "," + MutationRate + "," + populationSize + "," + numGenes + "," + parallelExecution + "," + fixedRNGSeed + "," + SelectionPercentage + "," + elitistPopulationPercentage);
+                    streamWriter.WriteLine("");
+                    // Write Header
+                    streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness");
                 }
-                GUI.enabled = true;
             }
             else
             {
-                if (GUI.Button(widgetRect, "Pause Training"))
+                if (simulationTerminated)
                 {
-                    simulationTerminated = true;
+                    GUI.enabled = !shouldSimulationTerminate();
+                    if (GUI.Button(widgetRect, "Resume Training"))
+                    {
+                        simulationTerminated = false;
+                        parallelTaskRunning = false;
+
+                        // Ensure snake game is running the best dna.
+                        if (displayedSnakeGame.GetSnakeGame().dna.generationNumber != bestDNA.generationNumber || displayedSnakeGame.GetSnakeGame().dna.snakeNumber != bestDNA.snakeNumber)
+                        {
+                            displayedSnakeGame.Restart(bestDNA.Clone());
+                        }
+                    }
+                    GUI.enabled = true;
+                }
+                else
+                {
+                    if (GUI.Button(widgetRect, "Pause Training"))
+                    {
+                        simulationTerminated = true;
+                    }
                 }
             }
-        }
-        widgetRect.y += widgetVerticalSpacing * 0.6f;
-        GUI.enabled = (trainingStarted);
-        if (GUI.Button(widgetRect, "Stop Training"))
-        {
-            trainingStarted = false;
-            simulationTerminated = false;
-            cancellationTokenSource.Cancel();
-            if (parallelTrainingTask != null)
+            widgetRect.y += widgetVerticalSpacing * 0.6f;
+            GUI.enabled = (trainingStarted);
+            if (GUI.Button(widgetRect, "Stop Training"))
             {
-                parallelTrainingTask.Wait(); // Waits until it stops first.
+                trainingStarted = false;
+                simulationTerminated = false;
+                cancellationTokenSource.Cancel();
+                if (parallelTrainingTask != null)
+                {
+                    parallelTrainingTask.Wait(); // Waits until it stops first.
+                }
+                cancellationTokenSource.Dispose();
+                cancellationTokenSource = new CancellationTokenSource();
+                streamWriter.Close();
             }
-            cancellationTokenSource.Dispose();
-            cancellationTokenSource = new CancellationTokenSource();
-            streamWriter.Close();
+            GUI.enabled = true;
+            widgetRect.y += widgetVerticalSpacing * 0.6f;
+            GUI.enabled = (!trainingStarted);
+            if (GUI.Button(widgetRect, "Clear Log File"))
+            {
+                string fileName = trainingLogFileName + ".csv";
+                streamWriter = new StreamWriter(fileName, append: false);
+                streamWriter.Close();
+            }
+            GUI.enabled = true;
         }
-        GUI.enabled = true;
-        widgetRect.y += widgetVerticalSpacing * 0.6f;
-        GUI.enabled = (!trainingStarted);
-        if (GUI.Button(widgetRect, "Clear Log File"))
-        {
-            string fileName = trainingLogFileName + ".csv";
-            streamWriter = new StreamWriter(fileName, append: false);
-            streamWriter.Close();
-        }
-        GUI.enabled = true;
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 1.3f;
 
         /// TAB BUTTONS
         // Because of how large the UI is, I'll make it possible to enable/disable tabs
 
-        Rect tabButtonsWidget = new Rect(widgetRect.x, widgetRect.y, widgetRect.width*0.33f, widgetRect.height*0.7f);
+        Rect tabButtonsWidget = new Rect(widgetRect.x, widgetRect.y, widgetRect.width * 0.33f, widgetRect.height * 0.7f);
         Color defaultColor = GUI.color;
+        {
+            GUI.color = gameSettingsUIEnabled ? defaultColor : Color.red;
+            if (GUI.Button(tabButtonsWidget, "Game"))
+            {
+                gameSettingsUIEnabled = !gameSettingsUIEnabled;
+            }
+            tabButtonsWidget.x += tabButtonsWidget.width;
+            GUI.color = geneticAlgorithmUIEnabled ? defaultColor : Color.red;
+            if (GUI.Button(tabButtonsWidget, "GE"))
+            {
+                geneticAlgorithmUIEnabled = !geneticAlgorithmUIEnabled;
+            }
+            tabButtonsWidget.x += tabButtonsWidget.width;
+            GUI.color = trainingProgressUIEnabled ? defaultColor : Color.red;
+            if (GUI.Button(tabButtonsWidget, "Training"))
+            {
+                trainingProgressUIEnabled = !trainingProgressUIEnabled;
+            }
 
-        GUI.color = gameSettingsUIEnabled ? defaultColor : Color.red;
-        if (GUI.Button(tabButtonsWidget, "Game"))
-        {
-            gameSettingsUIEnabled = !gameSettingsUIEnabled;
+            // NEXT ROW
+            tabButtonsWidget.x = widgetRect.x;
+            tabButtonsWidget.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+            GUI.color = fitnessSettingsUIEnabled ? defaultColor : Color.red;
+            if (GUI.Button(tabButtonsWidget, "Fitness"))
+            {
+                fitnessSettingsUIEnabled = !fitnessSettingsUIEnabled;
+            }
+            tabButtonsWidget.x += tabButtonsWidget.width;
+            GUI.color = neuralNetworkUIEnabled ? defaultColor : Color.red;
+            if (GUI.Button(tabButtonsWidget, "Network"))
+            {
+                neuralNetworkUIEnabled = !neuralNetworkUIEnabled;
+            }
+            tabButtonsWidget.x += tabButtonsWidget.width;
         }
-        tabButtonsWidget.x += tabButtonsWidget.width;
-        GUI.color = geneticAlgorithmUIEnabled ? defaultColor : Color.red;
-        if (GUI.Button(tabButtonsWidget, "GE"))
-        {
-            geneticAlgorithmUIEnabled = !geneticAlgorithmUIEnabled;
-        }
-        tabButtonsWidget.x += tabButtonsWidget.width;
-        GUI.color = trainingProgressUIEnabled ? defaultColor : Color.red;
-        if (GUI.Button(tabButtonsWidget, "Training"))
-        {
-            trainingProgressUIEnabled = !trainingProgressUIEnabled;
-        }
-
-        // NEXT ROW
-        tabButtonsWidget.x = widgetRect.x;
-        tabButtonsWidget.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
-        GUI.color = fitnessSettingsUIEnabled ? defaultColor : Color.red;
-        if (GUI.Button(tabButtonsWidget, "Fitness"))
-        {
-            fitnessSettingsUIEnabled = !fitnessSettingsUIEnabled;
-        }
-        tabButtonsWidget.x += tabButtonsWidget.width;
-        GUI.color = neuralNetworkUIEnabled ? defaultColor : Color.red;
-        if (GUI.Button(tabButtonsWidget, "Network"))
-        {
-            neuralNetworkUIEnabled = !neuralNetworkUIEnabled;
-        }
-        tabButtonsWidget.x += tabButtonsWidget.width;
         widgetRect.y = tabButtonsWidget.y + widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.7f;
         GUI.color = defaultColor;
 
@@ -444,7 +453,7 @@ public class GameManager : MonoBehaviour
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.enabled = !trainingStarted;
+            //GUI.enabled = !trainingStarted;
             GUI.Label(widgetRect, "RNG Seed: " + randomGenerationSeed);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
@@ -458,7 +467,7 @@ public class GameManager : MonoBehaviour
                 randomGenerationSeed = inputInt;
             }
             GUILayout.EndArea();
-            GUI.enabled = true;
+            //GUI.enabled = true;
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
         }
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
@@ -698,7 +707,6 @@ public class GameManager : MonoBehaviour
         }
         parallelTaskRunning = false;
     }
-
     private void parallelSnakeGameUpdate()
     {
         /*
@@ -734,16 +742,7 @@ public class GameManager : MonoBehaviour
         generationsLowestFitness = population[0].fitness; // So that it doesn't start at 0.
         for (int i = 0; i < population.Length; i++)
         {
-            generationsBestFitness = MathF.Max(population[i].fitness, generationsBestFitness);
-            generationsLowestFitness = MathF.Min(population[i].fitness, generationsLowestFitness);
-            generationTotalFitness += population[i].fitness;            
-            if (population[i].fitness > bestDNA.fitness)
-            {
-                // Store the dna (Once program is terminated, can then use the best DNA for the AI).
-                // Could optionally serialize it as well.
-                bestDNA = population[i].Clone();
-                bestFitnessGeneration = generation;
-            }
+            checkAndHandleIfSnakeHasBestDNA(i);
         }
         // Next Generation
         if (!shouldSimulationTerminate())
@@ -751,7 +750,6 @@ public class GameManager : MonoBehaviour
             createNewGeneration();
         }
     }
-
     private void sequentialSnakeGameUpdate()
     {
         /*
@@ -765,18 +763,7 @@ public class GameManager : MonoBehaviour
             {          
                 if (currentSnake == 0) { generationsLowestFitness = population[0].fitness; }
                 population[currentSnake].fitness = displayedSnakeGame.GetSnakeGame().CalculateFitness(scorePerApple, scoreMovesMultiplier, scoreProgressToNextAppleMultiplier, scoreDecayRate);
-                // Update statistics
-                generationsBestFitness = MathF.Max(population[currentSnake].fitness, generationsBestFitness);
-                generationsLowestFitness = MathF.Min(population[currentSnake].fitness, generationsLowestFitness);
-                generationTotalFitness += population[currentSnake].fitness;
-                // Determine if snake is the best candidate.
-                if (population[currentSnake].fitness > bestDNA.fitness)
-                {
-                    // Store the dna (Once program is terminated, can then use the best DNA for the AI).
-                    // Could optionally serialize it as well.
-                    bestDNA = displayedSnakeGame.GetSnakeGame().dna.Clone();
-                    bestFitnessGeneration = generation;
-                }
+                checkAndHandleIfSnakeHasBestDNA(currentSnake);
 
                 // Move to the next snake
                 currentSnake++;
@@ -803,6 +790,26 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void checkAndHandleIfSnakeHasBestDNA(int snakeIndex)
+    {
+        if (snakeIndex == 0) { generationsLowestFitness = population[0].fitness; }
+        // Update statistics
+        generationsBestFitness = MathF.Max(population[snakeIndex].fitness, generationsBestFitness);
+        generationsLowestFitness = MathF.Min(population[snakeIndex].fitness, generationsLowestFitness);
+        generationTotalFitness += population[snakeIndex].fitness;
+        // Determine if snake is the best candidate.
+        if (population[snakeIndex].fitness > bestDNA.fitness)
+        {
+            // Store the dna (Once program is terminated, can then use the best DNA for the AI).
+            // Could optionally serialize it as well.
+            bestDNA = population[snakeIndex].Clone();
+            bestFitnessGeneration = generation;
+
+            // Data for comparing the active dna later
+            bestDNA.generationNumber = generation;
+            bestDNA.snakeNumber = snakeIndex;
+        }
+    }
     private bool shouldSimulationTerminate()
     {
         if (generationLimitEnabled && generation > generationLimit)
@@ -813,7 +820,6 @@ public class GameManager : MonoBehaviour
 
         return false;
     }
-
     private void createNewGeneration()
     {
         // Write to file 

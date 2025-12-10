@@ -16,6 +16,10 @@ public class DNA
     public float[] genes;
     public float fitness = 0.0f;
 
+    // Values to use for ID : Allows me to check if DNA is the same as other dna, even when cloned.
+    public int generationNumber = 0;
+    public int snakeNumber = 0;
+
     public DNA(int numGenes, System.Random random)
     {
         /// Initialize Genes
