@@ -87,11 +87,16 @@ public class SnakeGame
         segments.Add(snakeHeadStartPosition);
         spawnApple();
     }
-    public void Restart(DNA newDNA)
+    public void Restart(DNA newDNA, GameManager gameManager)
     {
+        useFixedRNGSeed = gameManager.fixedRNGSeed;
         if (useFixedRNGSeed)
         {
             random = new System.Random(randomGenerationSeed);
+        }
+        else
+        {
+            random = new System.Random();
         }
         dna = newDNA;
         neuralNetwork = new NeuralNetwork(newDNA, GameManager.numberOfInputNeurons, GameManager.numberOfOutputNeurons, numHiddenLayers, numHiddenLayerNeurons);

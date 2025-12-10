@@ -271,7 +271,7 @@ public class GameManager : MonoBehaviour
                         // Ensure snake game is running the best dna.
                         if (displayedSnakeGame.GetSnakeGame().dna.generationNumber != bestDNA.generationNumber || displayedSnakeGame.GetSnakeGame().dna.snakeNumber != bestDNA.snakeNumber)
                         {
-                            displayedSnakeGame.Restart(bestDNA.Clone());
+                            displayedSnakeGame.Restart(bestDNA.Clone(), this);
                         }
                     }
                     GUI.enabled = true;
@@ -686,7 +686,7 @@ public class GameManager : MonoBehaviour
                     else
                     {
                         // Run the best fitness DNA repeatedly.
-                        if (displayedSnakeGame.GetSnakeGame().alive == false) { displayedSnakeGame.Restart(bestDNA.Clone()); }
+                        if (displayedSnakeGame.GetSnakeGame().alive == false) { displayedSnakeGame.Restart(bestDNA.Clone(), this); }
                         else { displayedSnakeGame.UpdateSnake(); }
                     }
                 }
@@ -776,12 +776,12 @@ public class GameManager : MonoBehaviour
                     }
                 }
                 // Update snake DNA
-                displayedSnakeGame.Restart(population[currentSnake]);
+                displayedSnakeGame.Restart(population[currentSnake], this);
             }
             else
             {
                 // Recreate the best snake over and over after simulation is terminated.
-                displayedSnakeGame.Restart(bestDNA.Clone());
+                displayedSnakeGame.Restart(bestDNA.Clone(), this);
             }
         }
         else

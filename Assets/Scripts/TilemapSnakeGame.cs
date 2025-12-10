@@ -75,7 +75,7 @@ public class TilemapSnakeGame : MonoBehaviour
         }
     }
     
-    public void Restart(DNA newDNA)
+    public void Restart(DNA newDNA, GameManager gameManager)
     {
         removeTilemapTile(snakeGame.GetApplePosition());
         for (int i = 0; i < segments.Count; i++)
@@ -89,7 +89,7 @@ public class TilemapSnakeGame : MonoBehaviour
             updateTilemapTile(segments[0], WallColor);
         }
 
-        snakeGame.Restart(newDNA);
+        snakeGame.Restart(newDNA, gameManager);
         segments = snakeGame.GetSegments(); // Need to update reference because segments are replaced.
         updateTilemapTile(snakeGame.GetApplePosition(), AppleColor);
     }
