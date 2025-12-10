@@ -231,7 +231,7 @@ public class SnakeGame
                 {
                     currentLeftScanPosition += leftScanDirection;
                     TileType scannedLeftTile = grid[currentLeftScanPosition.x, currentLeftScanPosition.y];
-                    if (scannedLeftTile != TileType.Empty)
+                    if (scannedLeftTile != TileType.Empty && scannedLeftTile != TileType.Apple)
                     {
                         Vector2Int difference = currentLeftScanPosition - segments[0];
                         distanceToLeftObstacle = (int)difference.magnitude;
@@ -244,7 +244,7 @@ public class SnakeGame
                 {
                     currentRightScanPosition += rightScanDirection;
                     TileType scannedRightTile = grid[currentRightScanPosition.x, currentRightScanPosition.y];
-                    if (scannedRightTile != TileType.Empty)
+                    if (scannedRightTile != TileType.Empty && scannedRightTile != TileType.Apple)
                     {
                         Vector2Int difference = currentRightScanPosition - segments[0];
                         distanceToRightObstacle = (int)difference.magnitude;
