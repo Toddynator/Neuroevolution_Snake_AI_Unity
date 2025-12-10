@@ -46,13 +46,6 @@ public class NeuralNetwork
     DNA dna;
     int geneIndex = 0;
 
-
-
-    ///////////////
-    ///// FUNCTIONS
-    
-
-
     public NeuralNetwork(DNA newDna, int numInputNeurons, int numOutputNeurons, int numHiddenLayers, int numHiddenLayerNeurons)
     {
         //// Initialisation network

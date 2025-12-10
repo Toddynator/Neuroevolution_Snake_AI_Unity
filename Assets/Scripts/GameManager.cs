@@ -275,7 +275,10 @@ public class GameManager : MonoBehaviour
             simulationTerminated = false;
             streamWriter.Close(); // Close file so that it can be opened.
             cancellationTokenSource.Cancel();
-            parallelTrainingTask.Wait(); // Waits until it stops first.
+            if (parallelTrainingTask != null)
+            {
+                parallelTrainingTask.Wait(); // Waits until it stops first.
+            }
             cancellationTokenSource.Dispose();
             cancellationTokenSource = new CancellationTokenSource();
         }
