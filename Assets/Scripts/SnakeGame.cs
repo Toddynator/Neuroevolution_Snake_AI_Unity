@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Sockets;
 using Unity.Burst.CompilerServices;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class SnakeGame
 {
@@ -40,11 +41,15 @@ public class SnakeGame
     public bool seeApple;
     public bool alive = true;
     private bool diedToCollision = false;
-    private int numMovesSinceLastApple = 0;
+    public int numMovesSinceLastApple = 0;
     public int numberOfApplesConsumed = 0;
     public int numOfMoves = 0;
     public int averageMovesPerApple = 0;
     public int numOfMovesWhenGreatestLengthReached = 0;
+    public float totalMoveEfficiency = 0; // 0 to 1, 1 when snake takes minimum moves needed to get to an apple.
+    public float minimumMovesToApple = 0;
+    public float averageMoveEfficiency = 1.0f;
+    public int distanceToWallBehind = 0;
 
     public void Initialize(DNA newDNA, GameManager gameManager)
     {
@@ -116,6 +121,8 @@ public class SnakeGame
         distanceToApple = 0;
         distanceToObstacleInFront = 0;
         seeApple = false;
+        averageMoveEfficiency = 0;
+        totalMoveEfficiency = 0;
 
         // EDGE CASE: Remove apple first incase it was overlapped by snake
         grid[applePosition.x, applePosition.y] = TileType.Empty;
@@ -270,6 +277,11 @@ public class SnakeGame
             segments.Add(segment);
         }
 
+        // Efficiency Calculation
+        if (minimumMovesToApple == 0 || numMovesSinceLastApple == 0) { totalMoveEfficiency += 1.0f; }
+        else { totalMoveEfficiency += minimumMovesToApple / numMovesSinceLastApple; }
+        
+
         // EDGE CASE: Snake has outgrown the level.
         if (segments.Count >= (grid.GetLength(0) - 1) * (grid.GetLength(1) - 1)) { gameOver(); return; }
     }
@@ -292,6 +304,8 @@ public class SnakeGame
                 grid[applePosition.x, applePosition.y] = TileType.Apple;
             }
         }
+
+        minimumMovesToApple = Mathf.Abs(applePosition.x - segments[0].x + applePosition.y - segments[0].y); // horizontal + vertical
     }
     private void gameOver()
     {
@@ -327,7 +341,6 @@ public class SnakeGame
         float inputHeadPositionX = ((float)segments[0].x / (float)gridSize.x);
         float inputHeadPositionY = ((float)segments[0].y / (float)gridSize.y);
 
-        float distanceToWallBehind;
         float inputDistanceToWallBehind;
         if (direction.x == 1)
         {
@@ -461,9 +474,15 @@ public class SnakeGame
     {
         float score = 0.0f;
         float maxPossibleDistanceToApple = gridSize.magnitude;
-        if (numberOfApplesConsumed > 0) { averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed; }
+        averageMoveEfficiency = 1.0f;
+        if (numberOfApplesConsumed > 0) { 
+            averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed;
+            averageMoveEfficiency = (totalMoveEfficiency / numberOfApplesConsumed);
+        }
 
-        score += numberOfApplesConsumed * SCORE_PER_APPLE; // Primarily reward based on number of apples gained
+        //score += numberOfApplesConsumed * SCORE_PER_APPLE; // Primarily reward based on number of apples gained
+        score += numberOfApplesConsumed * SCORE_PER_APPLE;
+        score += SCORE_PER_APPLE * SCORE_MOVES_MULTIPLIER * averageMoveEfficiency;
         score += SCORE_PROGRESS_TO_NEXT_APPLE_MULTIPLIER * SCORE_PER_APPLE * (1.0f - distanceToApple / maxPossibleDistanceToApple); // Reward getting closer to the apple with each generation
         //score = score * Mathf.Exp(numOfMovesWhenGreatestLengthReached * -(SCORE_DECAY_RATE)) * SCORE_MOVES_MULTIPLIER; // Should reward / penalise for taking too many moves to get each apple.
 

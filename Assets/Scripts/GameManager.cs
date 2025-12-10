@@ -59,7 +59,7 @@ public class GameManager : MonoBehaviour
     public int populationSize = 10;
     public int generationLimit = 15; // When to stop simulating and display the best candidate.
     public bool generationLimitEnabled = true;
-    public int numGenes = 1000; // Should match the number required for the neural network.
+    private int numGenes = 1000; // Should match the number required for the neural network.
     public float MutationRate = 0.01f;
     public float SelectionPercentage = 0.5f; // Percentage of population sorted by fitness to use for the next generation.
     public float elitistPopulationPercentage = 0.1f; // Percentage of population to fully preserve between generations.
@@ -97,6 +97,7 @@ public class GameManager : MonoBehaviour
     private bool trainingProgressUIEnabled = true;
     private bool neuralNetworkUIEnabled = false;
     private bool fitnessSettingsUIEnabled = false;
+    private bool snakeStatsUIEnabled = true;
     private string inputPop = "";
     //private string inputGeneNum = "";
     private string inputGenLimit = "";
@@ -386,6 +387,12 @@ public class GameManager : MonoBehaviour
                 neuralNetworkUIEnabled = !neuralNetworkUIEnabled;
             }
             tabButtonsWidget.x += tabButtonsWidget.width;
+            GUI.color = snakeStatsUIEnabled ? defaultColor : Color.red;
+            if (GUI.Button(tabButtonsWidget, "Snake"))
+            {
+                snakeStatsUIEnabled = !snakeStatsUIEnabled;
+            }
+            tabButtonsWidget.x += tabButtonsWidget.width;
         }
         widgetRect.y = tabButtonsWidget.y + widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.7f;
         GUI.color = defaultColor;
@@ -667,8 +674,11 @@ public class GameManager : MonoBehaviour
 
             GUI.Label(widgetRect, "Snake: " + currentSnake);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+        }
+        widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
 
-            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
+        if (snakeStatsUIEnabled)
+        {
             if (simulationTerminated || !parallelExecution)
             {
                 GUI.Label(widgetRect, "Snake Statistics", header);
@@ -697,6 +707,18 @@ public class GameManager : MonoBehaviour
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
                 GUI.Label(widgetRect, "DistanceToRightObstacle: " + displayedSnakeGame.GetSnakeGame().distanceToRightObstacle);
+                widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+                GUI.Label(widgetRect, "DistanceToWallBehind: " + displayedSnakeGame.GetSnakeGame().distanceToWallBehind);
+                widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+                GUI.Label(widgetRect, "AverageMoveEfficiency: " + displayedSnakeGame.GetSnakeGame().averageMoveEfficiency.ToString("F3"));
+                widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+                GUI.Label(widgetRect, "MinimumMovesToApple: " + displayedSnakeGame.GetSnakeGame().minimumMovesToApple);
+                widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+                GUI.Label(widgetRect, "Moves since last Apple: " + displayedSnakeGame.GetSnakeGame().numMovesSinceLastApple);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             }
         }
@@ -869,10 +891,12 @@ public class GameManager : MonoBehaviour
         // Sort in descending order of fitness
         System.Array.Sort(population, (a, b) => b.fitness.CompareTo((a.fitness)));
 
+        int elitePopulation = (int)(populationSize * elitistPopulationPercentage);
+        if (elitistPopulationPercentage > 0 && elitePopulation <= 0) { elitePopulation = 1; }
         for (int i = 0; i < populationSize; i++)
         {
             // Idea is that a percentage of the best populace won't be lost to random chance, but instead will be preserved and carried through generations until better are found.
-            if (i < (int)(populationSize * elitistPopulationPercentage))
+            if (i < elitePopulation)
             {
                 newPopulation[i] = population[i];
             }
