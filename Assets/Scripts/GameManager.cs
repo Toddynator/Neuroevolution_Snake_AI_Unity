@@ -619,9 +619,14 @@ public class GameManager : MonoBehaviour
         This function will attempt to train as many snake games in parallel as it can in each generation.
         Once the simulation is terminated, it will then display a single game with the best fitness DNA.
          */
-    
-        // This is crazy fast holy moly, runs snake games in parallel.
-        Parallel.For(0, populationSize, i =>
+
+        // https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.paralleloptions.maxdegreeofparallelism?view=net-10.0#system-threading-tasks-paralleloptions-maxdegreeofparallelism
+        // I've set it so that it leaves at least one core available so your PC doesn't explode when you make poor decisions.
+        //Debug.Log(Environment.ProcessorCount);
+        ParallelOptions options = new ParallelOptions ();
+        options.MaxDegreeOfParallelism = Environment.ProcessorCount - 1;
+        // Through the magic of parallel.for, it will create as many threads as it can to run the snake games in parallel.
+        Parallel.For(0, populationSize, options, i =>
         {
             if (cancellationTokenSource.Token.IsCancellationRequested)
             {
