@@ -57,6 +57,7 @@ public class GameManager : MonoBehaviour
 
     /// GENETIC ALGORITHM
 
+    CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(); // For stopping threads
     private Task parallelTrainingTask;
     private bool parallelTaskRunning = false;
     private int generation = 0;
@@ -111,6 +112,25 @@ public class GameManager : MonoBehaviour
         updateCamera();
         createInitialPopulation();
         createSnake();
+    }
+
+    void OnApplicationQuit()
+    {
+        shutdown();
+    }
+
+    private void OnDestroy()
+    {
+        shutdown();
+    }
+
+    private void shutdown()
+    {
+        streamWriter.Close();
+        cancellationTokenSource.Cancel(); // Tells all threads that they should stop execution.
+        parallelTrainingTask.Wait();
+        cancellationTokenSource.Dispose();
+        cancellationTokenSource = new CancellationTokenSource();
     }
 
     private void createInitialPopulation()
@@ -254,6 +274,10 @@ public class GameManager : MonoBehaviour
             trainingStarted = false;
             simulationTerminated = false;
             streamWriter.Close(); // Close file so that it can be opened.
+            cancellationTokenSource.Cancel();
+            parallelTrainingTask.Wait(); // Waits until it stops first.
+            cancellationTokenSource.Dispose();
+            cancellationTokenSource = new CancellationTokenSource();
         }
         GUI.enabled = true;
         widgetRect.y += widgetVerticalSpacing * 0.6f;
@@ -579,7 +603,7 @@ public class GameManager : MonoBehaviour
     // ONLY RUN THIS ON A SEPARATE THREAD, OTHERWISE IT WILL BLOCK THE REST OF THE APPLICATION SUCH AS THE UI.
     private void parallelTrainingLoop()
     {
-        while (!simulationTerminated)
+        while (!cancellationTokenSource.Token.IsCancellationRequested && !simulationTerminated)
         {
             parallelSnakeGameUpdate();
         }
@@ -596,11 +620,22 @@ public class GameManager : MonoBehaviour
         // This is crazy fast holy moly, runs snake games in parallel.
         Parallel.For(0, populationSize, i =>
         {
-            var game = new SnakeGame();
-            game.Initialize(population[i], this);
-            while (game.alive) { game.Update(); }
-            population[i].fitness = game.CalculateFitness();
+            if (cancellationTokenSource.Token.IsCancellationRequested)
+            {
+
+            }
+            else
+            {
+                var game = new SnakeGame();
+                game.Initialize(population[i], this);
+                while (!cancellationTokenSource.Token.IsCancellationRequested && game.alive)
+                {
+                    game.Update();
+                }
+                population[i].fitness = game.CalculateFitness();
+            }
         });
+        if (cancellationTokenSource.Token.IsCancellationRequested) { return; }
         // Determine best fitness    
         generationsLowestFitness = population[0].fitness; // So that it doesn't start at 0.
         for (int i = 0; i < population.Length; i++)
