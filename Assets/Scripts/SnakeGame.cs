@@ -319,13 +319,13 @@ public class SnakeGame
         float inputAppleDirectionX = (normalizedAppleDirection.x + 1.0f) / 2.0f;
         float inputAppleDirectionY = (normalizedAppleDirection.y + 1.0f) / 2.0f;
         float distanceToAppleInput = distanceToApple / maxDistance;
-        float distanceToFrontObstacleInput = distanceToObstacleInFront / maxDistance;
-        float distanceToLeftObstacleInput = distanceToLeftObstacle / maxDistance;
-        float distanceToRightObstacleInput = distanceToRightObstacle / maxDistance;
+        float distanceToFrontObstacleInput = (float)distanceToObstacleInFront / maxDistance;
+        float distanceToLeftObstacleInput = (float)distanceToLeftObstacle / maxDistance;
+        float distanceToRightObstacleInput = (float)distanceToRightObstacle / maxDistance;
         float inputDirectionX = (direction.x + 1.0f) / 2.0f;
         float inputDirectionY = (direction.y + 1.0f) / 2.0f;
-        float inputHeadPositionX = (segments[0].x / gridSize.x);
-        float inputHeadPositionY = (segments[0].y / gridSize.y);
+        float inputHeadPositionX = ((float)segments[0].x / (float)gridSize.x);
+        float inputHeadPositionY = ((float)segments[0].y / (float)gridSize.y);
 
         float distanceToWallBehind;
         float inputDistanceToWallBehind;
@@ -349,6 +349,24 @@ public class SnakeGame
             distanceToWallBehind = (gridSize.y - 1) - segments[0].y;
             inputDistanceToWallBehind = distanceToWallBehind / (gridSize.y - 1);
         }
+
+        /// DEBUG
+
+        //UnityEngine.Debug.Log(
+        //$"seeAppleFloat: {seesAppleFloat}\n" +
+        //$"inputAppleDirectionX: {inputAppleDirectionX}\n" +
+        //$"inputAppleDirectionY: {inputAppleDirectionY}\n" +
+        //$"distanceToAppleInput: {distanceToAppleInput}\n" +
+        //$"distanceToFrontObstacleInput: {distanceToFrontObstacleInput}\n" +
+        //$"distanceToLeftObstacleInput: {distanceToLeftObstacleInput}\n" +
+        //$"distanceToRightObstacleInput: {distanceToRightObstacleInput}\n" +
+        //$"inputDirectionX: {inputDirectionX}\n" +
+        //$"inputDirectionY: {inputDirectionY}\n" +
+        //$"inputHeadPositionX: {inputHeadPositionX}\n" +
+        //$"inputHeadPositionY: {inputHeadPositionY}\n" +
+        //$"distanceToWallBehind: {distanceToWallBehind}\n" +
+        //$"inputDistanceToWallBehind: {inputDistanceToWallBehind}"
+        //);
 
         /// SET NEURAL NETWORK INPUTS
 
