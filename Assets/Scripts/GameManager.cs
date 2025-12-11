@@ -443,6 +443,9 @@ public class GameManager : MonoBehaviour
             GUI.Label(widgetRect, "Neural Network", header);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
+            int hiddenLayerNumPrev = numberOfHiddenLayers;
+            int hiddenLayerNeuronNumPrev = numberOfHiddenLayerNeurons;
+
             GUI.Label(widgetRect, "Number of Hidden Layers: " + numberOfHiddenLayers);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUI.enabled = !trainingStarted;
@@ -468,6 +471,11 @@ public class GameManager : MonoBehaviour
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUI.enabled = true;
+
+            if (hiddenLayerNeuronNumPrev != numberOfHiddenLayerNeurons || hiddenLayerNumPrev != numberOfHiddenLayers)
+            {
+                numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(numberOfHiddenLayers, numberOfHiddenLayerNeurons, numberOfInputNeurons, numberOfOutputNeurons);
+            }
         }
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
 
@@ -793,6 +801,18 @@ public class GameManager : MonoBehaviour
         {
             // Run the best fitness DNA repeatedly.
             if (displayedSnakeGame.GetSnakeGame().alive == false) {
+                // If neural network has been modified, ensure dna has enough genes.
+                if (bestDNA.genes.Length < numGenes)
+                {
+                    float[] newGenes = new float[numGenes];
+                    for (int i = 0; i < numGenes; i++)
+                    {
+                        if (i < bestDNA.genes.Length) { newGenes[i] = bestDNA.genes[i]; }
+                        else { newGenes[i] = 0.0f; }
+                    }
+                    bestDNA.genes = newGenes;
+                }
+
                 displayedSnakeGame.Restart(bestDNA.Clone(), this); 
             }
             else { displayedSnakeGame.UpdateSnake(); }
