@@ -260,6 +260,26 @@ public class SnakeGame
                 }
             }
         }
+        
+        /// Compute the distance to the wall behind the snake
+        // Don't check for snake segments as if the snake is any length greater than 1 then we know there is an obstacle directly behind.
+
+        if (direction.x == 1)
+        {
+            distanceToWallBehind = segments[0].x;
+        }
+        else if (direction.x == -1)
+        {
+            distanceToWallBehind = (gridSize.x - 1) - segments[0].x;
+        }
+        else if (direction.y == 1)
+        {
+            distanceToWallBehind = segments[0].y;
+        }
+        else
+        {
+            distanceToWallBehind = (gridSize.y - 1) - segments[0].y;
+        }
 
         //// TERMINATE EARLY ~ e.g. snake takes too long
 
@@ -342,28 +362,7 @@ public class SnakeGame
         float inputHeadPositionX = ((float)segments[0].x / (float)gridSize.x);
         float inputHeadPositionY = ((float)segments[0].y / (float)gridSize.y);
         float inputSnakeLength = segments.Count / numberOfTiles;
-
-        float inputDistanceToWallBehind;
-        if (direction.x == 1)
-        {
-            distanceToWallBehind = segments[0].x;
-            inputDistanceToWallBehind = distanceToWallBehind / (gridSize.x - 1);
-        }
-        else if (direction.x == -1)
-        {
-            distanceToWallBehind = (gridSize.x - 1) - segments[0].x;
-            inputDistanceToWallBehind = distanceToWallBehind / (gridSize.x - 1);
-        }
-        else if (direction.y == 1)
-        {
-            distanceToWallBehind = segments[0].y;
-            inputDistanceToWallBehind = distanceToWallBehind / (gridSize.y - 1);
-        }
-        else
-        {
-            distanceToWallBehind = (gridSize.y - 1) - segments[0].y;
-            inputDistanceToWallBehind = distanceToWallBehind / (gridSize.y - 1);
-        }
+        float inputDistanceToWallBehind = direction.x != 0 ? distanceToWallBehind / (gridSize.x - 1) : distanceToWallBehind / (gridSize.y - 1);
 
         /// DEBUG
 
