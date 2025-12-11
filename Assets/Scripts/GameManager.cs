@@ -717,7 +717,7 @@ public class GameManager : MonoBehaviour
 
         if (snakeStatsUIEnabled)
         {
-            if (simulationTerminated || !parallelExecution)
+            if (displayBestDNA || simulationTerminated || !parallelExecution)
             {
                 GUI.Label(widgetRect, "Snake Statistics", header);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
@@ -916,10 +916,7 @@ public class GameManager : MonoBehaviour
         {
             simulationTerminated = true;
             // Ensure snake game is running the best dna.
-            if (displayedSnakeGame.GetSnakeGame().dna.generationNumber != bestDNA.generationNumber || displayedSnakeGame.GetSnakeGame().dna.snakeNumber != bestDNA.snakeNumber)
-            {
-                displayedSnakeGame.Restart(bestDNA.Clone(), this);
-            }
+            //displayedSnakeGame.Restart(bestDNA.Clone(), this);
             return true;
         }
 
