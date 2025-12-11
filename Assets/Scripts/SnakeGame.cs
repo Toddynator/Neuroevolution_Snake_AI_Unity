@@ -365,6 +365,10 @@ public class SnakeGame
         float inputHeadPositionY = ((float)segments[0].y / (float)gridSize.y);
         float inputSnakeLength = segments.Count / numberOfTiles;
         float inputDistanceToWallBehind = direction.x != 0 ? DistanceToWallBehind / (gridSize.x - 1) : DistanceToWallBehind / (gridSize.y - 1);
+        // Hopefully these make it easier for the snake to learn that close proximity is bad
+        float inputObstacleImmediateLeft = DistanceToLeftObstacle <= 1 ? 1.0f : 0.0f;
+        float inputObstacleImmediateFront = DistanceToObstacleInFront <= 1 ? 1.0f : 0.0f;
+        float inputObstacleImmediateRight = DistanceToRightObstacle <= 1 ? 1.0f : 0.0f;
 
         /// DEBUG
 
@@ -400,7 +404,10 @@ public class SnakeGame
         inputDirectionY,
         inputHeadPositionX,
         inputHeadPositionY,
-        inputSnakeLength
+        inputSnakeLength,
+        inputObstacleImmediateLeft,
+        inputObstacleImmediateFront,
+        inputObstacleImmediateRight
         }; 
 
         neuralNetwork.SetInputs(snakeInputs);
