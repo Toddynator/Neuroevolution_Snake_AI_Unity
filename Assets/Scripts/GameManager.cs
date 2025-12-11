@@ -343,6 +343,7 @@ public class GameManager : MonoBehaviour
                     {
                         simulationTerminated = true;
                         displayedSnakeGame.GetSnakeGame().Alive = false;
+                        displayedSnakeGame.Restart(bestDNA.Clone(), this);
                     }
                 }
             }
