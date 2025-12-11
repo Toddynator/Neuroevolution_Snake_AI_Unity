@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection.Emit;
@@ -92,6 +93,7 @@ public class GameManager : MonoBehaviour
     private bool pauseDisplayedGame = false;
     private int mostApplesEaten = 0;
     private bool displayBestDNA = false; // For overwriting training and just displaying the best dna
+    private Stopwatch stopwatch;
 
     /// UI
     private bool geneticAlgorithmUIEnabled = false;
@@ -164,6 +166,7 @@ public class GameManager : MonoBehaviour
             population[i] = new DNA(numGenes, random);
         }
         bestDNA = population[0];
+        stopwatch = new Stopwatch();
     }
     private void validateSceneSize()
     {
@@ -286,6 +289,7 @@ public class GameManager : MonoBehaviour
                     updateCamera();
                     createInitialPopulation();
                     createSnake();
+                    stopwatch = Stopwatch.StartNew();
 
                     // Start writing to file. Will append to previous entries instead of overwriting.
                     string fileName = trainingLogFileName + ".csv";
@@ -295,14 +299,14 @@ public class GameManager : MonoBehaviour
                     {
                         streamWriter.WriteLine("");
                     }
-                    streamWriter.WriteLine("RunNumber,Mutation Rate,Population Size,Gene Size,Parallel, Fixed RNG Seed,Selection Percentage,Elitist Selection Percentage," +
+                    streamWriter.WriteLine("RunNumber,Mutation Rate,Population Size,Gene Size,Parallel,TimeStep,Fixed RNG Seed,Selection Percentage,Elitist Selection Percentage," +
                         "HiddenLayers,HiddenLayerNeurons,ScoreMoveEfficiencyMultiplier,ScoreProgressNextAppleMultiplier,MostApplesConsumed");
-                    streamWriter.WriteLine(runCount + "," + MutationRate + "," + populationSize + "," + numGenes + "," + parallelExecution + "," + fixedRNGSeed + "," + 
+                    streamWriter.WriteLine(runCount + "," + MutationRate + "," + populationSize + "," + numGenes + "," + parallelExecution + "," + fixedTimeStep + "," + fixedRNGSeed + "," + 
                         SelectionPercentage + "," + elitistPopulationPercentage + ","+numberOfHiddenLayers+","+numberOfHiddenLayerNeurons+","+scoreMovesMultiplier+","+scoreProgressToNextAppleMultiplier
                         +","+bestDNA.mostApplesEaten);
                     streamWriter.WriteLine("");
                     // Write Header
-                    streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness");
+                    streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness,Time to Compute (ms)");
                 }
             }
             else
@@ -712,6 +716,9 @@ public class GameManager : MonoBehaviour
 
             GUI.Label(widgetRect, "Snake: " + currentSnake);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
+
+            GUI.Label(widgetRect, "GenerationTime(ms): " + stopwatch.ElapsedMilliseconds);
+            widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
         }
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
 
@@ -924,10 +931,11 @@ public class GameManager : MonoBehaviour
     }
     private void createNewGeneration()
     {
+        stopwatch.Stop();
         // Write to file 
         generationAverageFitness = generationTotalFitness / population.Length;
         // Write to File
-        streamWriter.WriteLine(generation + "," + generationsBestFitness + "," + generationsLowestFitness + "," + generationAverageFitness);
+        streamWriter.WriteLine(generation + "," + generationsBestFitness + "," + generationsLowestFitness + "," + generationAverageFitness +","+ stopwatch.Elapsed.TotalMilliseconds);
 
         // Create new population from previous generation.
 
@@ -976,6 +984,8 @@ public class GameManager : MonoBehaviour
         generationAverageFitness = 0;
         generationsLowestFitness = 0;
         population = newPopulation;
+
+        stopwatch = Stopwatch.StartNew();
     }
 
     // Purely for initialising a new gameObject, ideally this should only be called once and then the game should be restarted once finished.
