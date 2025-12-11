@@ -44,7 +44,7 @@ public class NeuralNetwork
 
     private float[][] values; // The stored / calculated value for each neuron. Layer, Neuron in Layer. All Layers.
     DNA dna;
-    int geneIndex = 0;
+    private int geneIndex = 0;
 
     public NeuralNetwork(DNA newDna, int numInputNeurons, int numOutputNeurons, int numHiddenLayers, int numHiddenLayerNeurons)
     {
@@ -122,10 +122,10 @@ public class NeuralNetwork
         int numNeurons = layerIndex - 1 == 0 ? numberOfInputNeurons : numberOfHiddenLayerNeurons;
         for (int previousLayerNeuronNum = 0; previousLayerNeuronNum < numNeurons; previousLayerNeuronNum++)
         {
-            output += (dna.genes[geneIndex] * values[layerIndex - 1][previousLayerNeuronNum]);
+            output += (dna.Genes[geneIndex] * values[layerIndex - 1][previousLayerNeuronNum]);
             geneIndex++;
         }
-        output += dna.genes[geneIndex];
+        output += dna.Genes[geneIndex];
         geneIndex++; // Weight for next linearTransformation should be on the next index
         return output;
     }

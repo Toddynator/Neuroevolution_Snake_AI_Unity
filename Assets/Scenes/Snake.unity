@@ -371,26 +371,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SnakeGamePrefab: {fileID: 7878243269492768780, guid: f2611e3b1a7af5349b47c50012b85348, type: 3}
   SceneSize: {x: 16, y: 16}
-  fixedTimeStep: 0.05
+  FixedTimeStep: 0.05
   GrowthPerApple: 1
   SnakeColourGradient: 1
-  headColor: {r: 0, g: 1, b: 0, a: 1}
-  tailColor: {r: 0, g: 0.5, b: 0, a: 1}
-  fixedRNGSeed: 1
-  randomGenerationSeed: 42
-  numberOfHiddenLayers: 1
-  numberOfHiddenLayerNeurons: 3
-  parallelExecution: 1
-  populationSize: 1000
-  generationLimit: 3000
-  generationLimitEnabled: 1
+  HeadColor: {r: 0, g: 1, b: 0, a: 1}
+  TailColor: {r: 0, g: 0.5, b: 0, a: 1}
+  FixedRNGSeed: 1
+  RandomGenerationSeed: 42
+  NumberOfHiddenLayers: 1
+  NumberOfHiddenLayerNeurons: 6
+  ParallelExecution: 1
+  PopulationSize: 1000
+  GenerationLimit: 3000
+  GenerationLimitEnabled: 1
   MutationRate: 0.05
   SelectionPercentage: 0.1
-  elitistPopulationPercentage: 0.01
-  scorePerApple: 10
-  scoreProgressToNextAppleMultiplier: 1
-  scoreMovesMultiplier: 0
-  scoreDecayRate: 0.01
+  ElitistPopulationPercentage: 0.01
+  ScorePerApple: 10
+  ScoreProgressToNextAppleMultiplier: 1
+  ScoreMovesMultiplier: 0
+  ScoreDecayRate: 0.01
 --- !u!4 &1143769917
 Transform:
   m_ObjectHideFlags: 0

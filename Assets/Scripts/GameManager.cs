@@ -21,6 +21,18 @@ of training. You get perfectly fine results with 0 hidden layers in your neural 
 A low selection rate of 0.1 is typically best for faster training, you'll see within the first 500 or so generations 
 some fast progress, 0.5 for example can take far longer going into the 1000's of generations before you see similar
 results.
+
+IMPROVEMENT IDEAS:
+- Neural Network stores only the values for the current and previous layer, and just ping pongs between them as it computes each layer.
+This will save a bit on memory, particularly with deep layers. Can simply use a bool for the 'ping pong' process.
+- Can further optimize the neural network by using a 1D array for the values.
+- I can improve SpawnApple in SnakeGame by keeping count of areas it already attempted to spawn an apple, this can stop games sometimes taking a long time
+if the snake gets particularly long (Although this has yet to be a noticable issue).
+- I should try adding functionality to the neural network for having varying sizes of hidden layers.
+- The neural network could also benefit from having varying activation functions for the hidden and output layers. E.g.
+Sigmoid for the output, TanH or ReLU for the hidden layers.
+- I could optimize the snake game by using bitwise operations for the grid and snake movement instead of a grid of ints.
+- Make SnakeGame stat variables private and instead use getters (since they shouldn't be modified outside of the class).
  */
 public enum TileType
 {
@@ -38,39 +50,40 @@ public class GameManager : MonoBehaviour
 
     private Vector2 baseSceneSize = new Vector2(32, 16);
     private float baseCameraSize = 10.0f;
-    public Vector2 SceneSize = new Vector2(32, 16);
-    public float fixedTimeStep = 0.1f;
+    public Vector2 SceneSize = new Vector2(32, 32);
+    public float FixedTimeStep = 0.05f;
     public int GrowthPerApple = 1;
-    public bool SnakeColourGradient = false; // Off by default for performance (If you need a TON of snake games running at the same time).
-    public Color headColor = Color.green;
-    public Color tailColor = new Color(0, 0.5f, 0, 1);
-    public bool fixedRNGSeed = true;
-    public int randomGenerationSeed = 42;
+    public bool SnakeColourGradient = true; // Turn off if you want a performance boost, but only really matters if you are displaying the snake during training.
+    public Color HeadColor = Color.green;
+    public Color TailColor = new Color(0, 0.5f, 0, 1);
+    public bool FixedRNGSeed = true;
+    public int RandomGenerationSeed = 42;
 
     /// NEURAL NETWORK SETTINGS
 
-    public const int numberOfInputNeurons = 13; // Should match the number of snake inputs I pass into the neural network.
-    public const int numberOfOutputNeurons = 3;
-    public int numberOfHiddenLayers = 3;
-    public int numberOfHiddenLayerNeurons = 120;
+    public const int NumberOfInputNeurons = 13; // Should match the number of snake inputs I pass into the neural network.
+    public const int NumberOfOutputNeurons = 3;
+    public int NumberOfHiddenLayers = 1;
+    public int NumberOfHiddenLayerNeurons = 6;
 
     /// GENETIC ALGORITHM SETTINGS
 
-    public bool parallelExecution = false; // Instead of running snake unity game objects which visually display the game, I run snake processes on multiple threads. Only show the final snake game.
-    public int populationSize = 10;
-    public int generationLimit = 15; // When to stop simulating and display the best candidate.
-    public bool generationLimitEnabled = true;
+    public bool ParallelExecution = true; // Instead of running snake unity game objects which visually display the game, I run snake processes on multiple threads. Only show the final snake game.
+    public int PopulationSize = 1000;
+    public int GenerationLimit = 3000; // When to stop simulating and display the best candidate.
+    public bool GenerationLimitEnabled = true;
     private int numGenes = 1000; // Should match the number required for the neural network.
-    public float MutationRate = 0.01f;
-    public float SelectionPercentage = 0.5f; // Percentage of population sorted by fitness to use for the next generation.
-    public float elitistPopulationPercentage = 0.1f; // Percentage of population to fully preserve between generations.
+    public float MutationRate = 0.05f;
+    public float SelectionPercentage = 0.1f; // Percentage of population sorted by fitness to use for the next generation.
+    public float ElitistPopulationPercentage = 0.01f; // Percentage of population to fully preserve between generations.
 
     /// GENETIC ALGORITHM
 
-    public float scorePerApple = 10.0f;
-    public float scoreProgressToNextAppleMultiplier = 1.0f;
-    public float scoreMovesMultiplier = 1.0f;
-    public float scoreDecayRate = 0.01f;
+    public float ScorePerApple = 10.0f;
+    public float ScoreProgressToNextAppleMultiplier = 1.0f;
+    public float ScoreMovesMultiplier = 0.0f;
+    public float ScoreDecayRate = 0.01f;
+
     CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(); // For stopping threads
     private Task parallelTrainingTask;
     private bool parallelTaskRunning = false;
@@ -130,9 +143,9 @@ public class GameManager : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(numberOfHiddenLayers, numberOfHiddenLayerNeurons, numberOfInputNeurons, numberOfOutputNeurons);
+        numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(NumberOfHiddenLayers, NumberOfHiddenLayerNeurons, NumberOfInputNeurons, NumberOfOutputNeurons);
 
-        Time.fixedDeltaTime = fixedTimeStep;
+        Time.fixedDeltaTime = FixedTimeStep;
         validateSceneSize();
         updateCamera();
         createInitialPopulation();
@@ -158,9 +171,9 @@ public class GameManager : MonoBehaviour
 
     private void createInitialPopulation()
     {
-        populationSize = Mathf.Max(populationSize, 1); // EDGE CASE: Ensure population size is never 0.
-        population = new DNA[populationSize];
-        for (int i = 0; i < populationSize; i++)
+        PopulationSize = Mathf.Max(PopulationSize, 1); // EDGE CASE: Ensure population size is never 0.
+        population = new DNA[PopulationSize];
+        for (int i = 0; i < PopulationSize; i++)
         {
             population[i] = new DNA(numGenes, random);
         }
@@ -242,16 +255,16 @@ public class GameManager : MonoBehaviour
         if (GUI.Button(quitButtonRect, "Save DNA"))
         {
             StreamWriter dnaWriter = new StreamWriter(dnaFileName + ".dna");
-            bestDNA.Serialize(dnaWriter, ref numberOfHiddenLayers, ref numberOfHiddenLayerNeurons);
+            bestDNA.Serialize(dnaWriter, ref NumberOfHiddenLayers, ref NumberOfHiddenLayerNeurons);
             dnaWriter.Close();
         }
         quitButtonRect.y += widgetVerticalSpacing * 0.6f;
         if (GUI.Button(quitButtonRect, "Load DNA"))
         {
             StreamReader dnaLoader = new StreamReader(dnaFileName + ".dna");
-            bestDNA.Deserialize(dnaLoader, ref numberOfHiddenLayers, ref numberOfHiddenLayerNeurons);
+            bestDNA.Deserialize(dnaLoader, ref NumberOfHiddenLayers, ref NumberOfHiddenLayerNeurons);
             dnaLoader.Close();
-            numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(numberOfHiddenLayers, numberOfHiddenLayerNeurons, numberOfInputNeurons, numberOfOutputNeurons);
+            numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(NumberOfHiddenLayers, NumberOfHiddenLayerNeurons, NumberOfInputNeurons, NumberOfOutputNeurons);
             displayedSnakeGame.Restart(bestDNA.Clone(), this);
 
             // Stop UI overwriting the values
@@ -288,7 +301,7 @@ public class GameManager : MonoBehaviour
                     generationTotalFitness = 0;
                     generationAverageFitness = 0;
                     generationsLowestFitness = 0;
-                    numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(numberOfHiddenLayers, numberOfHiddenLayerNeurons, numberOfInputNeurons, numberOfOutputNeurons);
+                    numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(NumberOfHiddenLayers, NumberOfHiddenLayerNeurons, NumberOfInputNeurons, NumberOfOutputNeurons);
                     validateSceneSize();
                     updateCamera();
                     createInitialPopulation();
@@ -305,9 +318,9 @@ public class GameManager : MonoBehaviour
                     }
                     streamWriter.WriteLine("RunNumber,Mutation Rate,Population Size,Gene Size,Parallel,TimeStep,Fixed RNG Seed,Selection Percentage,Elitist Selection Percentage," +
                         "HiddenLayers,HiddenLayerNeurons,ScoreMoveEfficiencyMultiplier,ScoreProgressNextAppleMultiplier,MostApplesConsumed");
-                    streamWriter.WriteLine(runCount + "," + MutationRate + "," + populationSize + "," + numGenes + "," + parallelExecution + "," + fixedTimeStep + "," + fixedRNGSeed + "," + 
-                        SelectionPercentage + "," + elitistPopulationPercentage + ","+numberOfHiddenLayers+","+numberOfHiddenLayerNeurons+","+scoreMovesMultiplier+","+scoreProgressToNextAppleMultiplier
-                        +","+bestDNA.mostApplesEaten);
+                    streamWriter.WriteLine(runCount + "," + MutationRate + "," + PopulationSize + "," + numGenes + "," + ParallelExecution + "," + FixedTimeStep + "," + FixedRNGSeed + "," + 
+                        SelectionPercentage + "," + ElitistPopulationPercentage + ","+NumberOfHiddenLayers+","+NumberOfHiddenLayerNeurons+","+ScoreMovesMultiplier+","+ScoreProgressToNextAppleMultiplier
+                        +","+bestDNA.MostApplesEaten);
                     streamWriter.WriteLine("");
                     // Write Header
                     streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness,Time to Compute (ms)");
@@ -330,7 +343,7 @@ public class GameManager : MonoBehaviour
                     if (GUI.Button(widgetRect, "Pause Training"))
                     {
                         simulationTerminated = true;
-                        displayedSnakeGame.GetSnakeGame().alive = false;
+                        displayedSnakeGame.GetSnakeGame().Alive = false;
                     }
                 }
             }
@@ -443,38 +456,38 @@ public class GameManager : MonoBehaviour
             GUI.Label(widgetRect, "Neural Network", header);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            int hiddenLayerNumPrev = numberOfHiddenLayers;
-            int hiddenLayerNeuronNumPrev = numberOfHiddenLayerNeurons;
+            int hiddenLayerNumPrev = NumberOfHiddenLayers;
+            int hiddenLayerNeuronNumPrev = NumberOfHiddenLayerNeurons;
 
-            GUI.Label(widgetRect, "Number of Hidden Layers: " + numberOfHiddenLayers);
+            GUI.Label(widgetRect, "Number of Hidden Layers: " + NumberOfHiddenLayers);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUI.enabled = !trainingStarted;
             GUILayout.BeginArea(widgetRect);
             inputHiddenLayerNum = GUILayout.TextField(inputHiddenLayerNum);
             if (int.TryParse(inputHiddenLayerNum, out inputInt))
             {
-                numberOfHiddenLayers = inputInt;
+                NumberOfHiddenLayers = inputInt;
             }
             GUILayout.EndArea();
             GUI.enabled = true;
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Neurons per Hidden Layer: " + numberOfHiddenLayerNeurons);
+            GUI.Label(widgetRect, "Neurons per Hidden Layer: " + NumberOfHiddenLayerNeurons);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUI.enabled = !trainingStarted;
             GUILayout.BeginArea(widgetRect);
             inputHiddenLayerNeuronNum = GUILayout.TextField(inputHiddenLayerNeuronNum);
             if (int.TryParse(inputHiddenLayerNeuronNum, out inputInt))
             {
-                numberOfHiddenLayerNeurons = inputInt;
+                NumberOfHiddenLayerNeurons = inputInt;
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUI.enabled = true;
 
-            if (hiddenLayerNeuronNumPrev != numberOfHiddenLayerNeurons || hiddenLayerNumPrev != numberOfHiddenLayers)
+            if (hiddenLayerNeuronNumPrev != NumberOfHiddenLayerNeurons || hiddenLayerNumPrev != NumberOfHiddenLayers)
             {
-                numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(numberOfHiddenLayers, numberOfHiddenLayerNeurons, numberOfInputNeurons, numberOfOutputNeurons);
+                numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(NumberOfHiddenLayers, NumberOfHiddenLayerNeurons, NumberOfInputNeurons, NumberOfOutputNeurons);
             }
         }
         widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER * 0.1f;
@@ -488,7 +501,7 @@ public class GameManager : MonoBehaviour
 
             GUI.enabled = !trainingStarted;
             GUILayout.BeginArea(widgetRect);
-            parallelExecution = GUILayout.Toggle(parallelExecution, "Parallel Execution");
+            ParallelExecution = GUILayout.Toggle(ParallelExecution, "Parallel Execution");
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUI.enabled = true;
@@ -530,30 +543,30 @@ public class GameManager : MonoBehaviour
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Timestep: " + fixedTimeStep);
+            GUI.Label(widgetRect, "Timestep: " + FixedTimeStep);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
             inputTimeStep = GUILayout.TextField(inputTimeStep);
             if (float.TryParse(inputTimeStep, out inputFloat))
             {
                 Time.fixedDeltaTime = inputFloat;
-                fixedTimeStep = inputFloat;
+                FixedTimeStep = inputFloat;
             }           
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             //GUI.enabled = !trainingStarted;
-            GUI.Label(widgetRect, "RNG Seed: " + randomGenerationSeed);
+            GUI.Label(widgetRect, "RNG Seed: " + RandomGenerationSeed);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
-            fixedRNGSeed = GUILayout.Toggle(fixedRNGSeed, "Fixed RNG Seed");
+            FixedRNGSeed = GUILayout.Toggle(FixedRNGSeed, "Fixed RNG Seed");
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
             inputRNGSeed = GUILayout.TextField(inputRNGSeed);
             if (int.TryParse(inputRNGSeed, out inputInt))
             {
-                randomGenerationSeed = inputInt;
+                RandomGenerationSeed = inputInt;
             }
             GUILayout.EndArea();
             //GUI.enabled = true;
@@ -568,7 +581,7 @@ public class GameManager : MonoBehaviour
             GUI.Label(widgetRect, "Genetic Algorithm", header);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Population Size: " + populationSize);
+            GUI.Label(widgetRect, "Population Size: " + PopulationSize);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.enabled = !trainingStarted; // DISABLE BEGIN
@@ -576,7 +589,7 @@ public class GameManager : MonoBehaviour
             inputPop = GUILayout.TextField(inputPop);
             if (int.TryParse(inputPop, out inputInt))
             {
-                populationSize = inputInt;
+                PopulationSize = inputInt;
             }
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.EndArea();
@@ -619,29 +632,29 @@ public class GameManager : MonoBehaviour
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Elite Selection Percentage: " + elitistPopulationPercentage);
+            GUI.Label(widgetRect, "Elite Selection Percentage: " + ElitistPopulationPercentage);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
             inputElitistSelectionPercentage = GUILayout.TextField(inputElitistSelectionPercentage);
             if (float.TryParse(inputElitistSelectionPercentage, out inputFloat))
             {
-                elitistPopulationPercentage = inputFloat;
-                elitistPopulationPercentage = Mathf.Clamp01(elitistPopulationPercentage);
+                ElitistPopulationPercentage = inputFloat;
+                ElitistPopulationPercentage = Mathf.Clamp01(ElitistPopulationPercentage);
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Generation Limit: " + generationLimit);
+            GUI.Label(widgetRect, "Generation Limit: " + GenerationLimit);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
-            generationLimitEnabled = GUILayout.Toggle(generationLimitEnabled, "Generation Limit");
+            GenerationLimitEnabled = GUILayout.Toggle(GenerationLimitEnabled, "Generation Limit");
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.EndArea();
             GUILayout.BeginArea(widgetRect);
             inputGenLimit = GUILayout.TextField(inputGenLimit);
             if (int.TryParse(inputGenLimit, out inputInt))
             {
-                generationLimit = inputInt;
+                GenerationLimit = inputInt;
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
@@ -657,46 +670,46 @@ public class GameManager : MonoBehaviour
             GUI.Label(widgetRect, "Fitness Settings", header);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Score per Apple: " + scorePerApple);
+            GUI.Label(widgetRect, "Score per Apple: " + ScorePerApple);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
             inputScoreApple = GUILayout.TextField(inputScoreApple);
             if (float.TryParse(inputScoreApple, out inputFloat))
             {
-                scorePerApple = inputFloat;
+                ScorePerApple = inputFloat;
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Score Apple Progress Multiplier: " + scoreProgressToNextAppleMultiplier);
+            GUI.Label(widgetRect, "Score Apple Progress Multiplier: " + ScoreProgressToNextAppleMultiplier);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
             inputScoreAppleProgressMultiplier = GUILayout.TextField(inputScoreAppleProgressMultiplier);
             if (float.TryParse(inputScoreAppleProgressMultiplier, out inputFloat))
             {
-                scoreProgressToNextAppleMultiplier = inputFloat;
+                ScoreProgressToNextAppleMultiplier = inputFloat;
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Score Moves Multiplier: " + scoreMovesMultiplier);
+            GUI.Label(widgetRect, "Score Moves Multiplier: " + ScoreMovesMultiplier);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
             inputScoreMoveMultiplier = GUILayout.TextField(inputScoreMoveMultiplier);
             if (float.TryParse(inputScoreMoveMultiplier, out inputFloat))
             {
-                scoreMovesMultiplier = inputFloat;
+                ScoreMovesMultiplier = inputFloat;
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Score Decay Rate: " + scoreDecayRate);
+            GUI.Label(widgetRect, "Score Decay Rate: " + ScoreDecayRate);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             GUILayout.BeginArea(widgetRect);
             inputScoreDecayRate = GUILayout.TextField(inputScoreDecayRate);
             if (float.TryParse(inputScoreDecayRate, out inputFloat))
             {
-                scoreDecayRate = inputFloat;
+                ScoreDecayRate = inputFloat;
             }
             GUILayout.EndArea();
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
@@ -710,13 +723,13 @@ public class GameManager : MonoBehaviour
             GUI.Label(widgetRect, "Training Progress", header);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Best Fitness: " + bestDNA.fitness);
+            GUI.Label(widgetRect, "Best Fitness: " + bestDNA.Fitness);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.Label(widgetRect, "Best Fitness Generation: " + bestFitnessGeneration);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-            GUI.Label(widgetRect, "Most Apples Eaten: " + bestDNA.mostApplesEaten);
+            GUI.Label(widgetRect, "Most Apples Eaten: " + bestDNA.MostApplesEaten);
             widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
             GUI.Label(widgetRect, "Generation: " + generation);
@@ -737,41 +750,41 @@ public class GameManager : MonoBehaviour
                 GUI.Label(widgetRect, "Snake Statistics", header);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                displayedSnakeGame.GetSnakeGame().CalculateFitness(scorePerApple, scoreMovesMultiplier, scoreProgressToNextAppleMultiplier, scoreDecayRate);
-                GUI.Label(widgetRect, "Fitness: " + displayedSnakeGame.GetSnakeGame().dna.fitness);
+                displayedSnakeGame.GetSnakeGame().CalculateFitness(ScorePerApple, ScoreMovesMultiplier, ScoreProgressToNextAppleMultiplier, ScoreDecayRate);
+                GUI.Label(widgetRect, "Fitness: " + displayedSnakeGame.GetSnakeGame().Dna.Fitness);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "Apples Eaten: " + displayedSnakeGame.GetSnakeGame().numberOfApplesConsumed);
+                GUI.Label(widgetRect, "Apples Eaten: " + displayedSnakeGame.GetSnakeGame().NumberOfApplesConsumed);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "Sees Apple: " + displayedSnakeGame.GetSnakeGame().seeApple);
+                GUI.Label(widgetRect, "Sees Apple: " + displayedSnakeGame.GetSnakeGame().SeeApple);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "DistanceToApple: " + displayedSnakeGame.GetSnakeGame().distanceToApple);
+                GUI.Label(widgetRect, "DistanceToApple: " + displayedSnakeGame.GetSnakeGame().DistanceToApple);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "DirectionToApple: " + displayedSnakeGame.GetSnakeGame().directionToApple);
+                GUI.Label(widgetRect, "DirectionToApple: " + displayedSnakeGame.GetSnakeGame().DirectionToApple);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "DistanceToFrontObstacle: " + displayedSnakeGame.GetSnakeGame().distanceToObstacleInFront);
+                GUI.Label(widgetRect, "DistanceToFrontObstacle: " + displayedSnakeGame.GetSnakeGame().DistanceToObstacleInFront);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "DistanceToLeftObstacle: " + displayedSnakeGame.GetSnakeGame().distanceToLeftObstacle);
+                GUI.Label(widgetRect, "DistanceToLeftObstacle: " + displayedSnakeGame.GetSnakeGame().DistanceToLeftObstacle);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "DistanceToRightObstacle: " + displayedSnakeGame.GetSnakeGame().distanceToRightObstacle);
+                GUI.Label(widgetRect, "DistanceToRightObstacle: " + displayedSnakeGame.GetSnakeGame().DistanceToRightObstacle);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "DistanceToWallBehind: " + displayedSnakeGame.GetSnakeGame().distanceToWallBehind);
+                GUI.Label(widgetRect, "DistanceToWallBehind: " + displayedSnakeGame.GetSnakeGame().DistanceToWallBehind);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "AverageMoveEfficiency: " + displayedSnakeGame.GetSnakeGame().averageMoveEfficiency.ToString("F3"));
+                GUI.Label(widgetRect, "AverageMoveEfficiency: " + displayedSnakeGame.GetSnakeGame().AverageMoveEfficiency.ToString("F3"));
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "MinimumMovesToApple: " + displayedSnakeGame.GetSnakeGame().minimumMovesToApple);
+                GUI.Label(widgetRect, "MinimumMovesToApple: " + displayedSnakeGame.GetSnakeGame().MinimumMovesToApple);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
 
-                GUI.Label(widgetRect, "Moves since last Apple: " + displayedSnakeGame.GetSnakeGame().numMovesSinceLastApple);
+                GUI.Label(widgetRect, "Moves since last Apple: " + displayedSnakeGame.GetSnakeGame().NumMovesSinceLastApple);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
             }
         }
@@ -783,7 +796,7 @@ public class GameManager : MonoBehaviour
     {
         if (!simulationTerminated && trainingStarted)
         {
-            if (parallelExecution)
+            if (ParallelExecution)
             {
                 if (!parallelTaskRunning)
                 {
@@ -800,17 +813,17 @@ public class GameManager : MonoBehaviour
         else if (!pauseDisplayedGame)
         {
             // Run the best fitness DNA repeatedly.
-            if (displayedSnakeGame.GetSnakeGame().alive == false) {
+            if (displayedSnakeGame.GetSnakeGame().Alive == false) {
                 // If neural network has been modified, ensure dna has enough genes.
-                if (bestDNA.genes.Length < numGenes)
+                if (bestDNA.Genes.Length < numGenes)
                 {
                     float[] newGenes = new float[numGenes];
                     for (int i = 0; i < numGenes; i++)
                     {
-                        if (i < bestDNA.genes.Length) { newGenes[i] = bestDNA.genes[i]; }
+                        if (i < bestDNA.Genes.Length) { newGenes[i] = bestDNA.Genes[i]; }
                         else { newGenes[i] = 0.0f; }
                     }
-                    bestDNA.genes = newGenes;
+                    bestDNA.Genes = newGenes;
                 }
 
                 displayedSnakeGame.Restart(bestDNA.Clone(), this); 
@@ -841,7 +854,7 @@ public class GameManager : MonoBehaviour
         ParallelOptions options = new ParallelOptions ();
         options.MaxDegreeOfParallelism = Environment.ProcessorCount - 1;
         // Through the magic of parallel.for, it will create as many threads as it can to run the snake games in parallel.
-        Parallel.For(0, populationSize, options, i =>
+        Parallel.For(0, PopulationSize, options, i =>
         {
             if (cancellationTokenSource.Token.IsCancellationRequested)
             {
@@ -850,16 +863,16 @@ public class GameManager : MonoBehaviour
             else
             {
                 var game = new SnakeGame();
-                game.Initialize(population[i], this);
-                while (!cancellationTokenSource.Token.IsCancellationRequested && game.alive)
+                game.Initialise(population[i], this);
+                while (!cancellationTokenSource.Token.IsCancellationRequested && game.Alive)
                 {
                     game.Update();
                 }
-                population[i].fitness = game.CalculateFitness(scorePerApple, scoreMovesMultiplier, scoreProgressToNextAppleMultiplier, scoreDecayRate);
+                population[i].Fitness = game.CalculateFitness(ScorePerApple, ScoreMovesMultiplier, ScoreProgressToNextAppleMultiplier, ScoreDecayRate);
             }
         });
         // Determine best fitness    
-        generationsLowestFitness = population[0].fitness; // So that it doesn't start at 0.
+        generationsLowestFitness = population[0].Fitness; // So that it doesn't start at 0.
         for (int i = 0; i < population.Length; i++)
         {
             checkAndHandleIfSnakeHasBestDNA(i);
@@ -872,7 +885,7 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            displayedSnakeGame.GetSnakeGame().alive = false;
+            displayedSnakeGame.GetSnakeGame().Alive = false;
         }
     }
     private void sequentialSnakeGameUpdate()
@@ -882,10 +895,10 @@ public class GameManager : MonoBehaviour
         it will then run and display a snake game with the best fitness DNA.
          */
 
-        if (displayedSnakeGame.GetSnakeGame().alive == false)
+        if (displayedSnakeGame.GetSnakeGame().Alive == false)
         {         
-            if (currentSnake == 0) { generationsLowestFitness = population[0].fitness; }
-            population[currentSnake].fitness = displayedSnakeGame.GetSnakeGame().CalculateFitness(scorePerApple, scoreMovesMultiplier, scoreProgressToNextAppleMultiplier, scoreDecayRate);
+            if (currentSnake == 0) { generationsLowestFitness = population[0].Fitness; }
+            population[currentSnake].Fitness = displayedSnakeGame.GetSnakeGame().CalculateFitness(ScorePerApple, ScoreMovesMultiplier, ScoreProgressToNextAppleMultiplier, ScoreDecayRate);
             checkAndHandleIfSnakeHasBestDNA(currentSnake);
 
             // Move to the next snake
@@ -899,7 +912,7 @@ public class GameManager : MonoBehaviour
                 }
                 else
                 {
-                    displayedSnakeGame.GetSnakeGame().alive = false;
+                    displayedSnakeGame.GetSnakeGame().Alive = false;
                 }
             }
             // Update snake DNA
@@ -913,13 +926,13 @@ public class GameManager : MonoBehaviour
 
     private void checkAndHandleIfSnakeHasBestDNA(int snakeIndex)
     {
-        if (snakeIndex == 0) { generationsLowestFitness = population[0].fitness; }
+        if (snakeIndex == 0) { generationsLowestFitness = population[0].Fitness; }
         // Update statistics
-        generationsBestFitness = MathF.Max(population[snakeIndex].fitness, generationsBestFitness);
-        generationsLowestFitness = MathF.Min(population[snakeIndex].fitness, generationsLowestFitness);
-        generationTotalFitness += population[snakeIndex].fitness;
+        generationsBestFitness = MathF.Max(population[snakeIndex].Fitness, generationsBestFitness);
+        generationsLowestFitness = MathF.Min(population[snakeIndex].Fitness, generationsLowestFitness);
+        generationTotalFitness += population[snakeIndex].Fitness;
         // Determine if snake is the best candidate.
-        if (population[snakeIndex].fitness > bestDNA.fitness)
+        if (population[snakeIndex].Fitness > bestDNA.Fitness)
         {
             // Store the dna (Once program is terminated, can then use the best DNA for the AI).
             // Could optionally serialize it as well.
@@ -927,13 +940,13 @@ public class GameManager : MonoBehaviour
             bestFitnessGeneration = generation;
 
             // Data for comparing the active dna later
-            bestDNA.generationNumber = generation;
-            bestDNA.snakeNumber = snakeIndex;
+            bestDNA.GenerationNumber = generation;
+            bestDNA.SnakeNumber = snakeIndex;
         }
     }
     private bool shouldSimulationTerminate()
     {
-        if (generationLimitEnabled && generation > generationLimit)
+        if (GenerationLimitEnabled && generation > GenerationLimit)
         {
             simulationTerminated = true;
             return true;
@@ -951,14 +964,14 @@ public class GameManager : MonoBehaviour
 
         // Create new population from previous generation.
 
-        DNA[] newPopulation = new DNA[populationSize];
+        DNA[] newPopulation = new DNA[PopulationSize];
 
         // Sort in descending order of fitness
-        System.Array.Sort(population, (a, b) => b.fitness.CompareTo((a.fitness)));
+        System.Array.Sort(population, (a, b) => b.Fitness.CompareTo((a.Fitness)));
 
-        int elitePopulation = (int)(populationSize * elitistPopulationPercentage);
-        if (elitistPopulationPercentage > 0 && elitePopulation <= 0) { elitePopulation = 1; }
-        for (int i = 0; i < populationSize; i++)
+        int elitePopulation = (int)(PopulationSize * ElitistPopulationPercentage);
+        if (ElitistPopulationPercentage > 0 && elitePopulation <= 0) { elitePopulation = 1; }
+        for (int i = 0; i < PopulationSize; i++)
         {
             // Idea is that a percentage of the best populace won't be lost to random chance, but instead will be preserved and carried through generations until better are found.
             if (i < elitePopulation)
@@ -1007,8 +1020,8 @@ public class GameManager : MonoBehaviour
         GameObject newSnake = Instantiate(SnakeGamePrefab);
         newSnake.transform.position = new Vector3(0.0f - (SceneSize.x/2), 0.0f - (SceneSize.y/2), 0.0f); // Centre the game on the screen
         TilemapSnakeGame newSnakeGame = newSnake.GetComponent<TilemapSnakeGame>();
-        if (simulationTerminated) { newSnakeGame.Initialize(bestDNA.Clone(), this); }
-        else { newSnakeGame.Initialize(population[currentSnake], this); }
+        if (simulationTerminated) { newSnakeGame.Initialise(bestDNA.Clone(), this); }
+        else { newSnakeGame.Initialise(population[currentSnake], this); }
         displayedSnakeGame = newSnakeGame;
     }
 
@@ -1017,7 +1030,7 @@ public class GameManager : MonoBehaviour
         // Population should be sorted in descending order of fitness before calling this function.
 
         // Chooses a random parent from the fittest candidates of the population.
-        int fittestPopulationLength = (int)(populationSize * SelectionPercentage);
+        int fittestPopulationLength = (int)(PopulationSize * SelectionPercentage);
         int parentIndex = random.Next(0, fittestPopulationLength);
         return population[parentIndex];
     }

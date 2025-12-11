@@ -15,7 +15,7 @@ public class SnakeGame
     private Vector2Int applePosition;
     private Vector2Int snakeHeadStartPosition;
     private List<Vector2Int> segments;
-    public DNA dna; // The weightings used in the neural network.
+    public DNA Dna; // The weightings used in the neural network.
     private NeuralNetwork neuralNetwork; // How the Snake chooses its actions.
 
     private System.Random random;
@@ -33,29 +33,29 @@ public class SnakeGame
 
     /// STATS
 
-    public int distanceToObstacleInFront;
-    public int distanceToLeftObstacle;
-    public int distanceToRightObstacle;
-    public float distanceToApple; // Since I want to consider distance even if it isn't in line of sight, this is a float (To account for diagonals)
-    public Vector2 directionToApple;
-    public bool seeApple;
-    public bool alive = true;
+    public int DistanceToObstacleInFront;
+    public int DistanceToLeftObstacle;
+    public int DistanceToRightObstacle;
+    public float DistanceToApple; // Since I want to consider distance even if it isn't in line of sight, this is a float (To account for diagonals)
+    public Vector2 DirectionToApple;
+    public bool SeeApple;
+    public bool Alive = true;
     private bool diedToCollision = false;
-    public int numMovesSinceLastApple = 0;
-    public int numberOfApplesConsumed = 0;
-    public int numOfMoves = 0;
-    public int averageMovesPerApple = 0;
-    public int numOfMovesWhenGreatestLengthReached = 0;
-    public float totalMoveEfficiency = 0; // 0 to 1, 1 when snake takes minimum moves needed to get to an apple.
-    public float minimumMovesToApple = 0;
-    public float averageMoveEfficiency = 1.0f;
-    public int distanceToWallBehind = 0;
+    public int NumMovesSinceLastApple = 0;
+    public int NumberOfApplesConsumed = 0;
+    public int NumOfMoves = 0;
+    public int AverageMovesPerApple = 0;
+    public int NumOfMovesWhenGreatestLengthReached = 0;
+    public float TotalMoveEfficiency = 0; // 0 to 1, 1 when snake takes minimum moves needed to get to an apple.
+    public float MinimumMovesToApple = 0;
+    public float AverageMoveEfficiency = 1.0f;
+    public int DistanceToWallBehind = 0;
 
-    public void Initialize(DNA newDNA, GameManager gameManager)
+    public void Initialise(DNA newDNA, GameManager gameManager)
     {
-        dna = newDNA;
-        randomGenerationSeed = gameManager.randomGenerationSeed;
-        useFixedRNGSeed = gameManager.fixedRNGSeed;
+        Dna = newDNA;
+        randomGenerationSeed = gameManager.RandomGenerationSeed;
+        useFixedRNGSeed = gameManager.FixedRNGSeed;
         growthPerApple = gameManager.GrowthPerApple;
         if (useFixedRNGSeed)
         {
@@ -68,9 +68,9 @@ public class SnakeGame
 
         /// NEURAL NETWORK
 
-        numHiddenLayers = gameManager.numberOfHiddenLayers;
-        numHiddenLayerNeurons = gameManager.numberOfHiddenLayerNeurons;
-        neuralNetwork = new NeuralNetwork(newDNA, GameManager.numberOfInputNeurons, GameManager.numberOfOutputNeurons, numHiddenLayers, numHiddenLayerNeurons);
+        numHiddenLayers = gameManager.NumberOfHiddenLayers;
+        numHiddenLayerNeurons = gameManager.NumberOfHiddenLayerNeurons;
+        neuralNetwork = new NeuralNetwork(newDNA, GameManager.NumberOfInputNeurons, GameManager.NumberOfOutputNeurons, numHiddenLayers, numHiddenLayerNeurons);
 
         /// SETUP THE WALLS 
 
@@ -95,7 +95,7 @@ public class SnakeGame
     }
     public void Restart(DNA newDNA, GameManager gameManager)
     {
-        useFixedRNGSeed = gameManager.fixedRNGSeed;
+        useFixedRNGSeed = gameManager.FixedRNGSeed;
         if (useFixedRNGSeed)
         {
             random = new System.Random(randomGenerationSeed);
@@ -104,27 +104,27 @@ public class SnakeGame
         {
             random = new System.Random();
         }
-        dna = newDNA;
-        numHiddenLayers = gameManager.numberOfHiddenLayers;
-        numHiddenLayerNeurons = gameManager.numberOfHiddenLayerNeurons;
-        neuralNetwork = new NeuralNetwork(newDNA, GameManager.numberOfInputNeurons, GameManager.numberOfOutputNeurons, numHiddenLayers, numHiddenLayerNeurons);
+        Dna = newDNA;
+        numHiddenLayers = gameManager.NumberOfHiddenLayers;
+        numHiddenLayerNeurons = gameManager.NumberOfHiddenLayerNeurons;
+        neuralNetwork = new NeuralNetwork(newDNA, GameManager.NumberOfInputNeurons, GameManager.NumberOfOutputNeurons, numHiddenLayers, numHiddenLayerNeurons);
 
         // Revert Stats
         direction = Vector2Int.right;
         prevDirection = Vector2Int.right;
         turnDirection = 0;
-        alive = true;
+        Alive = true;
         diedToCollision = false;
-        numMovesSinceLastApple = 0;
-        numberOfApplesConsumed = 0;
-        numOfMoves = 0;
-        averageMovesPerApple = 0;
-        numOfMovesWhenGreatestLengthReached = 0;
-        distanceToApple = 0;
-        distanceToObstacleInFront = 0;
-        seeApple = false;
-        averageMoveEfficiency = 0;
-        totalMoveEfficiency = 0;
+        NumMovesSinceLastApple = 0;
+        NumberOfApplesConsumed = 0;
+        NumOfMoves = 0;
+        AverageMovesPerApple = 0;
+        NumOfMovesWhenGreatestLengthReached = 0;
+        DistanceToApple = 0;
+        DistanceToObstacleInFront = 0;
+        SeeApple = false;
+        AverageMoveEfficiency = 0;
+        TotalMoveEfficiency = 0;
 
         // EDGE CASE: Remove apple first incase it was overlapped by snake
         grid[applePosition.x, applePosition.y] = TileType.Empty;
@@ -148,7 +148,7 @@ public class SnakeGame
 
     public void Update()
     {
-        if (!alive) { return; }
+        if (!Alive) { return; }
 
         //// MOVE SNAKE
 
@@ -167,8 +167,8 @@ public class SnakeGame
         segments[0] += direction;
 
         prevDirection = direction;
-        numOfMoves++;
-        numMovesSinceLastApple++;
+        NumOfMoves++;
+        NumMovesSinceLastApple++;
 
         // Check for collisions ~ Only need to check for collisions in the head.
         if (grid[segments[0].x, segments[0].y] == TileType.Wall || grid[segments[0].x, segments[0].y] == TileType.Snake)
@@ -181,23 +181,23 @@ public class SnakeGame
             grow();
             spawnApple();
 
-            numberOfApplesConsumed++;
-            numOfMovesWhenGreatestLengthReached = numOfMoves;
-            numMovesSinceLastApple = 0;
+            NumberOfApplesConsumed++;
+            NumOfMovesWhenGreatestLengthReached = NumOfMoves;
+            NumMovesSinceLastApple = 0;
         }
-        if (alive) // This is more a personal choice for visuals, I don't want the snake head to overlap the object it collided with on death.
+        if (Alive) // This is more a personal choice for visuals, I don't want the snake head to overlap the object it collided with on death.
         {
             grid[segments[0].x, segments[0].y] = TileType.Snake;
         }
 
         //// SNAKE SENSES ~ What it sees
 
-        directionToApple = applePosition - segments[0];
-        distanceToApple = directionToApple.magnitude;
+        DirectionToApple = applePosition - segments[0];
+        DistanceToApple = DirectionToApple.magnitude;
 
         /// SCAN FOR OBSTACLES
 
-        seeApple = false;
+        SeeApple = false;
         Vector2Int currentScanPosition = segments[0];
         Vector2Int currentLeftScanPosition = segments[0];
         Vector2Int currentRightScanPosition = segments[0];
@@ -208,7 +208,7 @@ public class SnakeGame
         bool rightHit = false;
         if (currentScanPosition.x >= gridSize.x - 1 || currentScanPosition.x <= 0 || currentScanPosition.y <= 0 || currentScanPosition.y >= gridSize.y - 1)
         {
-            distanceToObstacleInFront = 0;
+            DistanceToObstacleInFront = 0;
         }
         else
         {
@@ -225,12 +225,12 @@ public class SnakeGame
                     TileType scannedTile = grid[currentScanPosition.x, currentScanPosition.y];
                     if (scannedTile == TileType.Apple)
                     {
-                        seeApple = true;
+                        SeeApple = true;
                     }
                     else if (scannedTile != TileType.Empty)
                     {
                         Vector2Int difference = currentScanPosition - segments[0];
-                        distanceToObstacleInFront = (int)difference.magnitude;
+                        DistanceToObstacleInFront = (int)difference.magnitude;
                         frontHit = true;
                     }
                 }
@@ -243,7 +243,7 @@ public class SnakeGame
                     if (scannedLeftTile != TileType.Empty && scannedLeftTile != TileType.Apple)
                     {
                         Vector2Int difference = currentLeftScanPosition - segments[0];
-                        distanceToLeftObstacle = (int)difference.magnitude;
+                        DistanceToLeftObstacle = (int)difference.magnitude;
                         leftHit = true;
                     }
                 }
@@ -256,7 +256,7 @@ public class SnakeGame
                     if (scannedRightTile != TileType.Empty && scannedRightTile != TileType.Apple)
                     {
                         Vector2Int difference = currentRightScanPosition - segments[0];
-                        distanceToRightObstacle = (int)difference.magnitude;
+                        DistanceToRightObstacle = (int)difference.magnitude;
                         rightHit = true;
                     }
                 }
@@ -268,24 +268,24 @@ public class SnakeGame
 
         if (direction.x == 1)
         {
-            distanceToWallBehind = segments[0].x;
+            DistanceToWallBehind = segments[0].x;
         }
         else if (direction.x == -1)
         {
-            distanceToWallBehind = (gridSize.x - 1) - segments[0].x;
+            DistanceToWallBehind = (gridSize.x - 1) - segments[0].x;
         }
         else if (direction.y == 1)
         {
-            distanceToWallBehind = segments[0].y;
+            DistanceToWallBehind = segments[0].y;
         }
         else
         {
-            distanceToWallBehind = (gridSize.y - 1) - segments[0].y;
+            DistanceToWallBehind = (gridSize.y - 1) - segments[0].y;
         }
 
         //// TERMINATE EARLY ~ e.g. snake takes too long
 
-        if (numMovesSinceLastApple >= gridSize.x * gridSize.y)
+        if (NumMovesSinceLastApple >= gridSize.x * gridSize.y)
         {
             gameOver();
         }
@@ -300,8 +300,8 @@ public class SnakeGame
         }
 
         // Efficiency Calculation
-        if (minimumMovesToApple == 0 || numMovesSinceLastApple == 0) { totalMoveEfficiency += 1.0f; }
-        else { totalMoveEfficiency += minimumMovesToApple / numMovesSinceLastApple; }
+        if (MinimumMovesToApple == 0 || NumMovesSinceLastApple == 0) { TotalMoveEfficiency += 1.0f; }
+        else { TotalMoveEfficiency += MinimumMovesToApple / NumMovesSinceLastApple; }
         
 
         // EDGE CASE: Snake has outgrown the level.
@@ -327,12 +327,12 @@ public class SnakeGame
             }
         }
 
-        minimumMovesToApple = Mathf.Abs(applePosition.x - segments[0].x + applePosition.y - segments[0].y); // horizontal + vertical
+        MinimumMovesToApple = Mathf.Abs(applePosition.x - segments[0].x + applePosition.y - segments[0].y); // horizontal + vertical
     }
     private void gameOver()
     {
-        alive = false;
-        if (numberOfApplesConsumed > 0) { averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed; }
+        Alive = false;
+        if (NumberOfApplesConsumed > 0) { AverageMovesPerApple = NumOfMovesWhenGreatestLengthReached / NumberOfApplesConsumed; }
     }
 
     private void determineTurnDirection()
@@ -351,20 +351,20 @@ public class SnakeGame
         float maxDistance = Mathf.Max(gridSize.x, gridSize.y);
         float numberOfTiles = gridSize.x * gridSize.y;
 
-        float seesAppleFloat = seeApple ? 1.0f : 0.0f;
-        Vector2 normalizedAppleDirection = directionToApple.normalized;
+        float seesAppleFloat = SeeApple ? 1.0f : 0.0f;
+        Vector2 normalizedAppleDirection = DirectionToApple.normalized;
         float inputAppleDirectionX = (normalizedAppleDirection.x + 1.0f) / 2.0f;
         float inputAppleDirectionY = (normalizedAppleDirection.y + 1.0f) / 2.0f;
-        float distanceToAppleInput = distanceToApple / maxDistance;
-        float distanceToFrontObstacleInput = (float)distanceToObstacleInFront / maxDistance;
-        float distanceToLeftObstacleInput = (float)distanceToLeftObstacle / maxDistance;
-        float distanceToRightObstacleInput = (float)distanceToRightObstacle / maxDistance;
+        float distanceToAppleInput = DistanceToApple / maxDistance;
+        float distanceToFrontObstacleInput = (float)DistanceToObstacleInFront / maxDistance;
+        float distanceToLeftObstacleInput = (float)DistanceToLeftObstacle / maxDistance;
+        float distanceToRightObstacleInput = (float)DistanceToRightObstacle / maxDistance;
         float inputDirectionX = (direction.x + 1.0f) / 2.0f;
         float inputDirectionY = (direction.y + 1.0f) / 2.0f;
         float inputHeadPositionX = ((float)segments[0].x / (float)gridSize.x);
         float inputHeadPositionY = ((float)segments[0].y / (float)gridSize.y);
         float inputSnakeLength = segments.Count / numberOfTiles;
-        float inputDistanceToWallBehind = direction.x != 0 ? distanceToWallBehind / (gridSize.x - 1) : distanceToWallBehind / (gridSize.y - 1);
+        float inputDistanceToWallBehind = direction.x != 0 ? DistanceToWallBehind / (gridSize.x - 1) : DistanceToWallBehind / (gridSize.y - 1);
 
         /// DEBUG
 
@@ -478,20 +478,20 @@ public class SnakeGame
     {
         float score = 0.0f;
         float maxPossibleDistanceToApple = gridSize.magnitude;
-        averageMoveEfficiency = 1.0f;
-        if (numberOfApplesConsumed > 0) { 
-            averageMovesPerApple = numOfMovesWhenGreatestLengthReached / numberOfApplesConsumed;
-            averageMoveEfficiency = (totalMoveEfficiency / numberOfApplesConsumed);
+        AverageMoveEfficiency = 1.0f;
+        if (NumberOfApplesConsumed > 0) { 
+            AverageMovesPerApple = NumOfMovesWhenGreatestLengthReached / NumberOfApplesConsumed;
+            AverageMoveEfficiency = (TotalMoveEfficiency / NumberOfApplesConsumed);
         }
-        if (numberOfApplesConsumed > dna.mostApplesEaten) { dna.mostApplesEaten = numberOfApplesConsumed; } 
+        if (NumberOfApplesConsumed > Dna.MostApplesEaten) { Dna.MostApplesEaten = NumberOfApplesConsumed; } 
 
         //score += numberOfApplesConsumed * SCORE_PER_APPLE; // Primarily reward based on number of apples gained
-        score += numberOfApplesConsumed * SCORE_PER_APPLE;
-        score += SCORE_PER_APPLE * SCORE_MOVES_MULTIPLIER * averageMoveEfficiency;
-        score += SCORE_PROGRESS_TO_NEXT_APPLE_MULTIPLIER * SCORE_PER_APPLE * (1.0f - distanceToApple / maxPossibleDistanceToApple); // Reward getting closer to the apple with each generation
+        score += NumberOfApplesConsumed * SCORE_PER_APPLE;
+        score += SCORE_PER_APPLE * SCORE_MOVES_MULTIPLIER * AverageMoveEfficiency;
+        score += SCORE_PROGRESS_TO_NEXT_APPLE_MULTIPLIER * SCORE_PER_APPLE * (1.0f - DistanceToApple / maxPossibleDistanceToApple); // Reward getting closer to the apple with each generation
         //score = score * Mathf.Exp(numOfMovesWhenGreatestLengthReached * -(SCORE_DECAY_RATE)) * SCORE_MOVES_MULTIPLIER; // Should reward / penalise for taking too many moves to get each apple.
 
-        dna.fitness = score;
+        Dna.Fitness = score;
 
         return score;
     }

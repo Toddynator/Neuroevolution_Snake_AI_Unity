@@ -32,9 +32,9 @@ public class TilemapSnakeGame : MonoBehaviour
     public Tilemap tilemap; // What it renders tiles to
     private Tile baseTile; // Can just colour this tile
 
-    public void Initialize(DNA newDNA, GameManager gameManager)
+    public void Initialise(DNA newDNA, GameManager gameManager)
     {
-        snakeGame.Initialize(newDNA, gameManager);
+        snakeGame.Initialise(newDNA, gameManager);
 
         grid = snakeGame.GetGrid();
         segments = snakeGame.GetSegments();
@@ -43,8 +43,8 @@ public class TilemapSnakeGame : MonoBehaviour
         /// Game Manager Settings
 
         useSnakeColourGradient = gameManager.SnakeColourGradient;
-        headColor = gameManager.headColor;
-        tailColor = gameManager.tailColor;
+        headColor = gameManager.HeadColor;
+        tailColor = gameManager.TailColor;
         segmentColours.Add(headColor);
 
         /// Create a tile resource
@@ -99,7 +99,7 @@ public class TilemapSnakeGame : MonoBehaviour
         /// UPDATE GAME
 
         snakeGame.Update();
-        if (!snakeGame.alive) { return; }
+        if (!snakeGame.Alive) { return; }
 
         //// UPDATE TILEMAP
 
@@ -135,7 +135,7 @@ public class TilemapSnakeGame : MonoBehaviour
             if (useSnakeColourGradient) { updateTilemapTile(segments[i], segmentColours[i]); }
             else { updateTilemapTile(segments[i], segmentColours[0]); }
         }
-        if (snakeGame.alive) { updateTilemapTile(segments[0], segmentColours[0]); } // Purely aesthetic, I want the snake when it dies to NOT have the head overlap what it collided with.
+        if (snakeGame.Alive) { updateTilemapTile(segments[0], segmentColours[0]); } // Purely aesthetic, I want the snake when it dies to NOT have the head overlap what it collided with.
 
         /// SENSES VISUALIZATIONS
 

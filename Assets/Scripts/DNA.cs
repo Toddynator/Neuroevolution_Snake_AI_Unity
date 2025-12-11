@@ -14,28 +14,28 @@ I now use them as weightings in a range of -1.0f to 1.0f and the neural network 
 
 public class DNA
 {
-    public float[] genes;
-    public float fitness = 0.0f;
+    public float[] Genes;
+    public float Fitness = 0.0f;
 
     // Values to use for ID or Stats: Allows me to check if DNA is the same as other dna, even when cloned.
-    public int generationNumber = 0;
-    public int snakeNumber = 0;
-    public int mostApplesEaten = 0;
+    public int GenerationNumber = 0;
+    public int SnakeNumber = 0;
+    public int MostApplesEaten = 0;
 
     public DNA(int numGenes, System.Random random)
     {
         /// Initialize Genes
         // Should start with random inputs then converge on a solution over several generations of mutations and crossovers.
 
-        genes = new float[numGenes];    
+        Genes = new float[numGenes];    
         for (int i = 0; i < numGenes; i++)
         {
-            genes[i] = generateRandomGene(random);
+            Genes[i] = generateRandomGene(random);
         }
     }
     public DNA(int numGenes)
     {
-        genes = new float[numGenes];
+        Genes = new float[numGenes];
     }
 
     private float generateRandomGene(System.Random random)
@@ -46,24 +46,24 @@ public class DNA
 
     public DNA Clone()
     {
-        DNA copy = new DNA(genes.Length);
-        copy.genes = (float[])genes.Clone();
-        copy.fitness = fitness;
-        copy.generationNumber = generationNumber;
-        copy.snakeNumber = snakeNumber;
-        copy.mostApplesEaten = mostApplesEaten;
+        DNA copy = new DNA(Genes.Length);
+        copy.Genes = (float[])Genes.Clone();
+        copy.Fitness = Fitness;
+        copy.GenerationNumber = GenerationNumber;
+        copy.SnakeNumber = SnakeNumber;
+        copy.MostApplesEaten = MostApplesEaten;
         return copy;
     }
 
     public void Serialize(StreamWriter streamWriter, ref int numHiddenLayers, ref int numHiddenLayerNeurons)
     {
-        streamWriter.WriteLine(fitness.ToString());
-        streamWriter.WriteLine(generationNumber.ToString());
-        streamWriter.WriteLine(snakeNumber.ToString());
-        streamWriter.WriteLine(mostApplesEaten.ToString());
+        streamWriter.WriteLine(Fitness.ToString());
+        streamWriter.WriteLine(GenerationNumber.ToString());
+        streamWriter.WriteLine(SnakeNumber.ToString());
+        streamWriter.WriteLine(MostApplesEaten.ToString());
 
-        streamWriter.WriteLine(genes.Length);
-        foreach (float gene in genes)
+        streamWriter.WriteLine(Genes.Length);
+        foreach (float gene in Genes)
         {
             streamWriter.WriteLine(gene.ToString());
         }
@@ -73,16 +73,16 @@ public class DNA
     }
     public void Deserialize(StreamReader streamReader, ref int numHiddenLayers, ref int numHiddenLayerNeurons)
     {
-        fitness = float.Parse(streamReader.ReadLine());
-        generationNumber = int.Parse(streamReader.ReadLine());
-        snakeNumber = int.Parse(streamReader.ReadLine());
-        mostApplesEaten = int.Parse(streamReader.ReadLine());
+        Fitness = float.Parse(streamReader.ReadLine());
+        GenerationNumber = int.Parse(streamReader.ReadLine());
+        SnakeNumber = int.Parse(streamReader.ReadLine());
+        MostApplesEaten = int.Parse(streamReader.ReadLine());
 
         int numberOfGenes = int.Parse(streamReader.ReadLine());
-        genes = new float[numberOfGenes];
+        Genes = new float[numberOfGenes];
         for(int i = 0; i < numberOfGenes; i++)
         {
-            genes[i] = float.Parse(streamReader.ReadLine());
+            Genes[i] = float.Parse(streamReader.ReadLine());
         }
 
         // Check if this saveFile has the hidden layer settings written (This is for backward compatibility).
@@ -95,19 +95,19 @@ public class DNA
 
     public DNA Crossover (DNA otherParent, System.Random random)
     {
-        DNA child = new DNA(genes.Length);
+        DNA child = new DNA(Genes.Length);
 
         /// Uniform Crossover
         // 50/50 for each gene which parent will be used.
-        for (int i = 0; i < genes.Length; i++)
+        for (int i = 0; i < Genes.Length; i++)
         {
             if (random.NextDouble() > 0.5f)
             {
-                child.genes[i] = otherParent.genes[i];
+                child.Genes[i] = otherParent.Genes[i];
             }
             else
             {
-                child.genes[i] = genes[i];
+                child.Genes[i] = Genes[i];
             }
         }
 
@@ -152,12 +152,12 @@ public class DNA
         /// Random Resetting Mutation
         // One or several positions are randomly selected, a value is determined for each of these positions (In whatever range I use for my genes).
 
-        for (int i = 0; i < genes.Length; i++)
+        for (int i = 0; i < Genes.Length; i++)
         {
             if (random.NextDouble() < mutationRate)
             {
-                int geneToEdit = random.Next(genes.Length);
-                genes[geneToEdit] = generateRandomGene(random);
+                int geneToEdit = random.Next(Genes.Length);
+                Genes[geneToEdit] = generateRandomGene(random);
             }
         }
     }
