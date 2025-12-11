@@ -317,13 +317,12 @@ public class GameManager : MonoBehaviour
                         streamWriter.WriteLine("");
                     }
                     streamWriter.WriteLine("RunNumber,Mutation Rate,Population Size,Gene Size,Parallel,TimeStep,Fixed RNG Seed,Selection Percentage,Elitist Selection Percentage," +
-                        "HiddenLayers,HiddenLayerNeurons,ScoreMoveEfficiencyMultiplier,ScoreProgressNextAppleMultiplier,MostApplesConsumed");
+                        "HiddenLayers,HiddenLayerNeurons,ScoreMoveEfficiencyMultiplier,ScoreProgressNextAppleMultiplier");
                     streamWriter.WriteLine(runCount + "," + MutationRate + "," + PopulationSize + "," + numGenes + "," + ParallelExecution + "," + FixedTimeStep + "," + FixedRNGSeed + "," + 
-                        SelectionPercentage + "," + ElitistPopulationPercentage + ","+NumberOfHiddenLayers+","+NumberOfHiddenLayerNeurons+","+ScoreMovesMultiplier+","+ScoreProgressToNextAppleMultiplier
-                        +","+bestDNA.MostApplesEaten);
+                        SelectionPercentage + "," + ElitistPopulationPercentage + ","+NumberOfHiddenLayers+","+NumberOfHiddenLayerNeurons+","+ScoreMovesMultiplier+","+ScoreProgressToNextAppleMultiplier);
                     streamWriter.WriteLine("");
                     // Write Header
-                    streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness,Time to Compute (ms)");
+                    streamWriter.WriteLine("Generation,Best Fitness,Lowest Fitness,Average Fitness,Time to Compute (ms),Most Apples Eaten");
                 }
             }
             else
@@ -960,7 +959,7 @@ public class GameManager : MonoBehaviour
         // Write to file 
         generationAverageFitness = generationTotalFitness / population.Length;
         // Write to File
-        streamWriter.WriteLine(generation + "," + generationsBestFitness + "," + generationsLowestFitness + "," + generationAverageFitness +","+ stopwatch.Elapsed.TotalMilliseconds);
+        streamWriter.WriteLine(generation + "," + generationsBestFitness + "," + generationsLowestFitness + "," + generationAverageFitness +","+ stopwatch.Elapsed.TotalMilliseconds + "," + bestDNA.MostApplesEaten);
 
         // Create new population from previous generation.
 
