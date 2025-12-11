@@ -55,7 +55,7 @@ public class DNA
         return copy;
     }
 
-    public void Serialize(StreamWriter streamWriter)
+    public void Serialize(StreamWriter streamWriter, ref int numHiddenLayers, ref int numHiddenLayerNeurons)
     {
         streamWriter.WriteLine(fitness.ToString());
         streamWriter.WriteLine(generationNumber.ToString());
@@ -67,8 +67,11 @@ public class DNA
         {
             streamWriter.WriteLine(gene.ToString());
         }
+
+        streamWriter.WriteLine(numHiddenLayers);
+        streamWriter.WriteLine(numHiddenLayerNeurons);
     }
-    public void Deserialize(StreamReader streamReader)
+    public void Deserialize(StreamReader streamReader, ref int numHiddenLayers, ref int numHiddenLayerNeurons)
     {
         fitness = float.Parse(streamReader.ReadLine());
         generationNumber = int.Parse(streamReader.ReadLine());
@@ -80,6 +83,13 @@ public class DNA
         for(int i = 0; i < numberOfGenes; i++)
         {
             genes[i] = float.Parse(streamReader.ReadLine());
+        }
+
+        // Check if this saveFile has the hidden layer settings written (This is for backward compatibility).
+        if (streamReader.Peek() != -1)
+        {
+            numHiddenLayers = int.Parse(streamReader.ReadLine());
+            numHiddenLayerNeurons = int.Parse(streamReader.ReadLine());
         }
     }
 

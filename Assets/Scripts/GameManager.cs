@@ -78,7 +78,7 @@ public class GameManager : MonoBehaviour
     private int currentSnake = 0; // Run the games sequentially, this is how newly created snakes will get their corresponding DNA on initialization.
     private DNA bestDNA = null; // Highest Fitness DNA
     private int bestFitnessGeneration = 0;
-    private bool simulationTerminated = false;
+    private bool simulationTerminated = true;
     private bool trainingStarted = false;
     private DNA[] population;
     private TilemapSnakeGame displayedSnakeGame;
@@ -90,10 +90,9 @@ public class GameManager : MonoBehaviour
     private float generationTotalFitness = 0;
     private float generationAverageFitness = 0;
     private float generationsLowestFitness = 0;
-    private bool pauseDisplayedGame = false;
     private int mostApplesEaten = 0;
-    private bool displayBestDNA = false; // For overwriting training and just displaying the best dna
     private Stopwatch stopwatch;
+    private bool pauseDisplayedGame = false;
 
     /// UI
     private bool geneticAlgorithmUIEnabled = false;
@@ -243,25 +242,30 @@ public class GameManager : MonoBehaviour
         if (GUI.Button(quitButtonRect, "Save DNA"))
         {
             StreamWriter dnaWriter = new StreamWriter(dnaFileName + ".dna");
-            bestDNA.Serialize(dnaWriter);
+            bestDNA.Serialize(dnaWriter, ref numberOfHiddenLayers, ref numberOfHiddenLayerNeurons);
             dnaWriter.Close();
         }
         quitButtonRect.y += widgetVerticalSpacing * 0.6f;
         if (GUI.Button(quitButtonRect, "Load DNA"))
         {
             StreamReader dnaLoader = new StreamReader(dnaFileName + ".dna");
-            bestDNA.Deserialize(dnaLoader);
+            bestDNA.Deserialize(dnaLoader, ref numberOfHiddenLayers, ref numberOfHiddenLayerNeurons);
             dnaLoader.Close();
+            numGenes = NeuralNetwork.CalculateNumberOfGenesForNeuralNetwork(numberOfHiddenLayers, numberOfHiddenLayerNeurons, numberOfInputNeurons, numberOfOutputNeurons);
             displayedSnakeGame.Restart(bestDNA.Clone(), this);
+
+            // Stop UI overwriting the values
+            inputHiddenLayerNum = "";
+            inputHiddenLayerNeuronNum = "";
         }
         quitButtonRect.y += widgetVerticalSpacing * 0.6f;
-        string simulateButtonName = displayBestDNA ? "Stop Simulating Best DNA" : "Simulate Best DNA";
-        if (GUI.Button(quitButtonRect, simulateButtonName))
-        {
-            displayBestDNA = !displayBestDNA;
-            if(displayBestDNA) { displayedSnakeGame.Restart(bestDNA.Clone(), this); }
-        }
-        quitButtonRect.y += widgetVerticalSpacing * 0.6f;       
+        //string simulateButtonName = !pauseDisplayedGame ? "Stop Simulating Best DNA" : "Simulate Best DNA";
+        //if (GUI.Button(quitButtonRect, simulateButtonName))
+        //{
+        //    pauseDisplayedGame = !pauseDisplayedGame;
+        //    if(!pauseDisplayedGame) { displayedSnakeGame.Restart(bestDNA.Clone(), this); }
+        //}
+        //quitButtonRect.y += widgetVerticalSpacing * 0.6f;       
         GUILayout.BeginArea(quitButtonRect);
         dnaFileName = GUILayout.TextField(dnaFileName);
         GUILayout.EndArea();
@@ -326,11 +330,7 @@ public class GameManager : MonoBehaviour
                     if (GUI.Button(widgetRect, "Pause Training"))
                     {
                         simulationTerminated = true;
-                        // Ensure snake game is running the best dna.
-                        if (displayedSnakeGame.GetSnakeGame().dna.generationNumber != bestDNA.generationNumber || displayedSnakeGame.GetSnakeGame().dna.snakeNumber != bestDNA.snakeNumber)
-                        {
-                            displayedSnakeGame.Restart(bestDNA.Clone(), this);
-                        }
+                        displayedSnakeGame.GetSnakeGame().alive = false;
                     }
                 }
             }
@@ -339,7 +339,7 @@ public class GameManager : MonoBehaviour
             if (GUI.Button(widgetRect, "Stop Training"))
             {
                 trainingStarted = false;
-                simulationTerminated = false;
+                simulationTerminated = true;
                 cancellationTokenSource.Cancel();
                 if (parallelTrainingTask != null)
                 {
@@ -724,7 +724,7 @@ public class GameManager : MonoBehaviour
 
         if (snakeStatsUIEnabled)
         {
-            if (displayBestDNA || simulationTerminated || !parallelExecution)
+            if (!parallelTaskRunning)
             {
                 GUI.Label(widgetRect, "Snake Statistics", header);
                 widgetRect.y += widgetVerticalSpacing * TEXT_VERTICAL_SPACING_MULTIPLIER;
@@ -773,24 +773,15 @@ public class GameManager : MonoBehaviour
     // This is ideal for running the snake game when visually displaying as I can control the timestep.
     public void FixedUpdate()
     {
-        if (trainingStarted)
+        if (!simulationTerminated && trainingStarted)
         {
             if (parallelExecution)
             {
                 if (!parallelTaskRunning)
                 {
-                    if (!simulationTerminated)
-                    {
-                        // Run the training on a separate thread so that it doesn't block the main thread (UI Input, etc).
-                        parallelTaskRunning = true;
-                        parallelTrainingTask = Task.Run(() => parallelTrainingLoop());
-                    }
-                    else if (!pauseDisplayedGame)
-                    {
-                        // Run the best fitness DNA repeatedly.
-                        if (displayedSnakeGame.GetSnakeGame().alive == false) { displayedSnakeGame.Restart(bestDNA.Clone(), this); }
-                        else { displayedSnakeGame.UpdateSnake(); }
-                    }
+                    // Run the training on a separate thread so that it doesn't block the main thread (UI Input, etc).
+                    parallelTaskRunning = true;
+                    parallelTrainingTask = Task.Run(() => parallelTrainingLoop());
                 }
             }
             else
@@ -798,9 +789,12 @@ public class GameManager : MonoBehaviour
                 sequentialSnakeGameUpdate();
             }
         }
-        else if (displayBestDNA)
+        else if (!pauseDisplayedGame)
         {
-            if (displayedSnakeGame.GetSnakeGame().alive == false) { displayedSnakeGame.Restart(bestDNA.Clone(), this); }
+            // Run the best fitness DNA repeatedly.
+            if (displayedSnakeGame.GetSnakeGame().alive == false) {
+                displayedSnakeGame.Restart(bestDNA.Clone(), this); 
+            }
             else { displayedSnakeGame.UpdateSnake(); }
         }
     }
@@ -831,7 +825,7 @@ public class GameManager : MonoBehaviour
         {
             if (cancellationTokenSource.Token.IsCancellationRequested)
             {
-
+                // Doesn't have to do anything, purpose is to stop the threads as soon as possible.
             }
             else
             {
@@ -856,6 +850,10 @@ public class GameManager : MonoBehaviour
         {
             createNewGeneration();
         }
+        else
+        {
+            displayedSnakeGame.GetSnakeGame().alive = false;
+        }
     }
     private void sequentialSnakeGameUpdate()
     {
@@ -865,33 +863,29 @@ public class GameManager : MonoBehaviour
          */
 
         if (displayedSnakeGame.GetSnakeGame().alive == false)
-        {
-            if (simulationTerminated == false)
-            {          
-                if (currentSnake == 0) { generationsLowestFitness = population[0].fitness; }
-                population[currentSnake].fitness = displayedSnakeGame.GetSnakeGame().CalculateFitness(scorePerApple, scoreMovesMultiplier, scoreProgressToNextAppleMultiplier, scoreDecayRate);
-                checkAndHandleIfSnakeHasBestDNA(currentSnake);
+        {         
+            if (currentSnake == 0) { generationsLowestFitness = population[0].fitness; }
+            population[currentSnake].fitness = displayedSnakeGame.GetSnakeGame().CalculateFitness(scorePerApple, scoreMovesMultiplier, scoreProgressToNextAppleMultiplier, scoreDecayRate);
+            checkAndHandleIfSnakeHasBestDNA(currentSnake);
 
-                // Move to the next snake
-                currentSnake++;
-                if (currentSnake >= population.Length)
-                {
-                    // Next Generation
-                    if (!shouldSimulationTerminate())
-                    {
-                        createNewGeneration();
-                    }
-                }
-                // Update snake DNA
-                displayedSnakeGame.Restart(population[currentSnake], this);
-            }
-            else
+            // Move to the next snake
+            currentSnake++;
+            if (currentSnake >= population.Length)
             {
-                // Recreate the best snake over and over after simulation is terminated.
-                displayedSnakeGame.Restart(bestDNA.Clone(), this);
+                // Next Generation
+                if (!shouldSimulationTerminate())
+                {
+                    createNewGeneration();
+                }
+                else
+                {
+                    displayedSnakeGame.GetSnakeGame().alive = false;
+                }
             }
+            // Update snake DNA
+            displayedSnakeGame.Restart(population[currentSnake], this);
         }
-        else if (!pauseDisplayedGame)
+        else
         {
             displayedSnakeGame.UpdateSnake();
         }
@@ -922,8 +916,6 @@ public class GameManager : MonoBehaviour
         if (generationLimitEnabled && generation > generationLimit)
         {
             simulationTerminated = true;
-            // Ensure snake game is running the best dna.
-            //displayedSnakeGame.Restart(bestDNA.Clone(), this);
             return true;
         }
 

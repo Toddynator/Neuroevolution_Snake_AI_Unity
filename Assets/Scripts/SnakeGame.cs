@@ -105,6 +105,8 @@ public class SnakeGame
             random = new System.Random();
         }
         dna = newDNA;
+        numHiddenLayers = gameManager.numberOfHiddenLayers;
+        numHiddenLayerNeurons = gameManager.numberOfHiddenLayerNeurons;
         neuralNetwork = new NeuralNetwork(newDNA, GameManager.numberOfInputNeurons, GameManager.numberOfOutputNeurons, numHiddenLayers, numHiddenLayerNeurons);
 
         // Revert Stats
