@@ -3,8 +3,9 @@ I made this for my AI University Module.
 A Neuroevolution ai for Classic Snake. 
 Neuroevolution is the combination of a genetic algorithm and a neural network, where the genetic algorithm is used to train the neural network.
 
-For a 14x14 snake grid, I managed to achieve a snake ai that consumed 195 apples, reaching full length.
-In random seeds, the snake ai still performed well, with around 30-70 apples being consumed consistently, as well as the snake being able to support varying sizes of grids.
+For a 14x14 snake grid, I managed to achieve a snake ai that consumed 195 apples in a fixed seed, reaching full length.
+In random seeds, the snake ai still performed well, with average of 35.9 apples being consumed consistently, as well as the snake being able to support varying sizes of grids.
+I achieved a higher average with a snake ai trained with random seeds, most apples eaten 93, but average of 52.3.
 
 # Most successful settings
 For a 16x16 grid (14x14 playable area) with a fixed rng seed of '42': 
@@ -27,7 +28,7 @@ fitness & apples eaten.
 - Input neurons were the single biggest contributing factor to the success of the snake. The more I added the higher the average fitness was across runs.
 - Converting input values into a consistent range made training far more consistent, AI seemed to perform better overall.
 - ReLU Activation function for the neural network seemed to improve the performance of deep networks overall.
-- Using a fixed RNG seed helped it most when training.
+- Using a fixed RNG seed can result in more apples eaten and a more optimum route for a specific seed, but it doesn't do as well as AI trained with the random generation, with an overall lower average fitness & apples eaten on rng seeds.
 - A higher population made each training session more likely to get a higher fitness before converging.
 - Hidden layers did not improve the ai and instead seemed detrimental, but did change the behaviour and strategies developed. More testing
 will be required to determine if this actually results in a better ai or not.
