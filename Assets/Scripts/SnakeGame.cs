@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Sockets;
 using Unity.Burst.CompilerServices;
 using UnityEngine;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.UIElements;
 
 public class SnakeGame
@@ -315,12 +316,27 @@ public class SnakeGame
         
 
         // EDGE CASE: Snake has outgrown the level.
-        if (segments.Count >= (grid.GetLength(0) - 1) * (grid.GetLength(1) - 1)) { gameOver(); return; }
+        if (segments.Count >= (gridSize.x - 2) * (gridSize.y - 2)) { gameOver(); return; }
     }
     private void spawnApple()
     {
-        /// TODO, add a way to use the same seed every time, should use apples consumed to ensure apples spawn in a different location each time as well.
-        /// Also should improve this so that it keeps track of positions it has already tried.   
+        if (segments.Count >= (gridSize.x - 2) * (gridSize.y - 2)) { gameOver(); return; }
+
+        /*List<Vector2Int> emptyCells = new List<Vector2Int>();
+        for (int x = 1; x < gridSize.x - 1; x++)
+        {
+            for (int y = 1; y < gridSize.y - 1; y++)
+            {
+                if (grid[x, y] == TileType.Empty)
+                {
+                    emptyCells.Add(new Vector2Int(x, y));
+                }
+            }
+        }
+        // One last edge case check JUST INCASE
+        if (emptyCells.Count <= 0) { gameOver(); return; }  
+        applePosition = emptyCells[random.Next(emptyCells.Count)];
+        grid[applePosition.x, applePosition.y] = TileType.Apple;*/
 
         bool emptyPositionFound = false;
         while (!emptyPositionFound)
@@ -381,7 +397,8 @@ public class SnakeGame
         float inputObstacleImmediateRight = DistanceToRightObstacle <= 1 ? 1.0f : 0.0f;
         float seesAppleLeftFloat = SeeAppleLeft ? 1.0f : 0.0f;
         float seesAppleRightFloat = SeeAppleRight ? 1.0f : 0.0f;
-        float inputSpaceLeftInGrid = ((gridSize.x - 2) * (gridSize.y - 2)) - segments.Count;
+        float totalTiles = ((gridSize.x - 2) * (gridSize.y - 2));
+        float inputSpaceLeftInGrid = (totalTiles - segments.Count)/totalTiles;
 
         /// DEBUG
 
@@ -420,7 +437,10 @@ public class SnakeGame
         inputSnakeLength,
         inputObstacleImmediateLeft,
         inputObstacleImmediateFront,
-        inputObstacleImmediateRight
+        inputObstacleImmediateRight,
+        seesAppleLeftFloat,
+        seesAppleRightFloat,
+        inputSpaceLeftInGrid
         }; 
 
         neuralNetwork.SetInputs(snakeInputs);
