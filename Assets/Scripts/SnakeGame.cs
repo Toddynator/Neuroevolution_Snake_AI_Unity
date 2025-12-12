@@ -50,6 +50,8 @@ public class SnakeGame
     public float MinimumMovesToApple = 0;
     public float AverageMoveEfficiency = 1.0f;
     public int DistanceToWallBehind = 0;
+    public bool SeeAppleLeft;
+    public bool SeeAppleRight;
 
     public void Initialise(DNA newDNA, GameManager gameManager)
     {
@@ -240,7 +242,11 @@ public class SnakeGame
                 {
                     currentLeftScanPosition += leftScanDirection;
                     TileType scannedLeftTile = grid[currentLeftScanPosition.x, currentLeftScanPosition.y];
-                    if (scannedLeftTile != TileType.Empty && scannedLeftTile != TileType.Apple)
+                    if (scannedLeftTile == TileType.Apple)
+                    {
+                        SeeAppleLeft = true;
+                    }
+                    else if (scannedLeftTile != TileType.Empty)
                     {
                         Vector2Int difference = currentLeftScanPosition - segments[0];
                         DistanceToLeftObstacle = (int)difference.magnitude;
@@ -253,7 +259,11 @@ public class SnakeGame
                 {
                     currentRightScanPosition += rightScanDirection;
                     TileType scannedRightTile = grid[currentRightScanPosition.x, currentRightScanPosition.y];
-                    if (scannedRightTile != TileType.Empty && scannedRightTile != TileType.Apple)
+                    if (scannedRightTile == TileType.Apple)
+                    {
+                        SeeAppleRight = true;
+                    }
+                    else if (scannedRightTile != TileType.Empty && scannedRightTile != TileType.Apple)
                     {
                         Vector2Int difference = currentRightScanPosition - segments[0];
                         DistanceToRightObstacle = (int)difference.magnitude;
@@ -369,6 +379,9 @@ public class SnakeGame
         float inputObstacleImmediateLeft = DistanceToLeftObstacle <= 1 ? 1.0f : 0.0f;
         float inputObstacleImmediateFront = DistanceToObstacleInFront <= 1 ? 1.0f : 0.0f;
         float inputObstacleImmediateRight = DistanceToRightObstacle <= 1 ? 1.0f : 0.0f;
+        float seesAppleLeftFloat = SeeAppleLeft ? 1.0f : 0.0f;
+        float seesAppleRightFloat = SeeAppleRight ? 1.0f : 0.0f;
+        float inputSpaceLeftInGrid = ((gridSize.x - 2) * (gridSize.y - 2)) - segments.Count;
 
         /// DEBUG
 
